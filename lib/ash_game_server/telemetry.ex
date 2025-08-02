@@ -28,6 +28,13 @@ defmodule AshGameServer.Telemetry do
       summary("vm.total_run_queue_lengths.cpu"),
       summary("vm.total_run_queue_lengths.io"),
       
+      # Jido Agent Metrics
+      counter("ash_game_server.jido.agent.error.count"),
+      counter("ash_game_server.jido.agent.signal_received.count"),
+      counter("ash_game_server.jido.agent_monitor.agent_down.count"),
+      last_value("ash_game_server.jido.signal_router.metrics.signal_count"),
+      last_value("ash_game_server.jido.signal_router.metrics.subscription_count"),
+      
       # Game Server Metrics (to be added as we implement features)
       # summary("game.tick.duration", unit: {:native, :millisecond}),
       # counter("game.player.join"),

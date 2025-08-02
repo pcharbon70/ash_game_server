@@ -15,8 +15,10 @@ defmodule AshGameServer.Application do
       # Start Telemetry supervisor
       AshGameServer.Telemetry,
       # Start Phoenix PubSub
-      {Phoenix.PubSub, name: AshGameServer.PubSub}
-      # Game-specific supervisors will be added here
+      {Phoenix.PubSub, name: AshGameServer.PubSub},
+      # Start Jido framework integration
+      AshGameServer.Jido
+      # Additional game-specific supervisors will be added here
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
