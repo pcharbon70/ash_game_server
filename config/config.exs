@@ -12,7 +12,17 @@ config :ash_game_server,
 
 # Configure Ash Framework
 config :ash,
-  include_embedded_source_in_code?: false
+  include_embedded_source_in_code?: false,
+  default_page_size: 20,
+  max_page_size: 100
+
+# Configure Ash domains
+config :ash_game_server,
+  ash_domains: [
+    AshGameServer.GameCore,
+    AshGameServer.Players,
+    AshGameServer.World
+  ]
 
 # Configure Spark DSL compilation
 config :spark,
