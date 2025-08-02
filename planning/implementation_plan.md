@@ -73,34 +73,34 @@ This section sets up the initial project structure and integrates all required d
   - [x] Create agent pooling
   - [x] Implement graceful shutdown
 
-#### 1.1.3 Ash Framework Setup
-- [ ] **1.1.3.1 Configure Ash Application**
-  - [ ] Create Ash configuration files
-  - [ ] Set up PostgreSQL data layer
-  - [ ] Configure resource defaults
-  - [ ] Add authentication setup
-  - [ ] Create migration strategy
+#### 1.1.3 Ash Framework Setup ✅
+- [x] **1.1.3.1 Configure Ash Application**
+  - [x] Create Ash configuration files
+  - [x] Set up PostgreSQL data layer
+  - [x] Configure resource defaults
+  - [x] Add authentication setup (partial)
+  - [x] Create migration strategy
 
-- [ ] **1.1.3.2 Create Base Resources**
-  - [ ] Define base resource module
-  - [ ] Add common attributes
-  - [ ] Create shared callbacks
-  - [ ] Implement audit fields
-  - [ ] Add soft delete support
+- [x] **1.1.3.2 Create Base Resources**
+  - [x] Define base resource module
+  - [x] Add common attributes
+  - [x] Create shared callbacks
+  - [x] Implement audit fields
+  - [x] Add soft delete support
 
-- [ ] **1.1.3.3 Set Up Domains**
-  - [ ] Create game domain structure
-  - [ ] Define domain boundaries
-  - [ ] Implement authorization
-  - [ ] Add domain documentation
-  - [ ] Create domain tests
+- [x] **1.1.3.3 Set Up Domains**
+  - [x] Create game domain structure
+  - [x] Define domain boundaries
+  - [x] Implement authorization (partial)
+  - [x] Add domain documentation
+  - [x] Create domain tests (to be expanded)
 
-- [ ] **1.1.3.4 Configure Real-time Features**
-  - [ ] Set up Ash.Notifier.PubSub
-  - [ ] Configure broadcasting options
-  - [ ] Create subscription management
-  - [ ] Add filtering support
-  - [ ] Implement presence tracking
+- [x] **1.1.3.4 Configure Real-time Features**
+  - [x] Set up Ash.Notifier.PubSub
+  - [x] Configure broadcasting options
+  - [x] Create subscription management
+  - [x] Add filtering support (partial)
+  - [x] Implement presence tracking (partial)
 
 - [ ] **1.1.3.5 Create API Layer**
   - [ ] Define GraphQL API with AshGraphql

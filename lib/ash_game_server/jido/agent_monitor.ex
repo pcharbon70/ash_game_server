@@ -14,7 +14,6 @@ defmodule AshGameServer.Jido.AgentMonitor do
   @monitor_name AshGameServer.Jido.AgentMonitor
   @health_check_interval 30_000
   @circuit_breaker_threshold 5
-  @circuit_breaker_timeout 60_000
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: @monitor_name)
