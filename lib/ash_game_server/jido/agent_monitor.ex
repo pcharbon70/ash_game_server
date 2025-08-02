@@ -170,16 +170,28 @@ defmodule AshGameServer.Jido.AgentMonitor do
 
   defp perform_health_checks(state) do
     Enum.reduce(state.monitored_agents, state, fn {agent_id, agent_info}, acc_state ->
-      case check_agent_health(agent_info.pid) do
-        :healthy ->
-          update_agent_health(acc_state, agent_id, :healthy, 0)
-        
-        :unhealthy ->
-          failure_count = agent_info.failure_count + 1
-          status = if failure_count >= @circuit_breaker_threshold, do: :circuit_open, else: :unhealthy
-          update_agent_health(acc_state, agent_id, status, failure_count)
-      end
+      process_agent_health_check(acc_state, agent_id, agent_info)
     end)
+  end
+
+  defp process_agent_health_check(state, agent_id, agent_info) do
+    case check_agent_health(agent_info.pid) do
+      :healthy ->
+        update_agent_health(state, agent_id, :healthy, 0)
+      
+      :unhealthy ->
+        failure_count = agent_info.failure_count + 1
+        status = determine_agent_status(failure_count)
+        update_agent_health(state, agent_id, status, failure_count)
+    end
+  end
+
+  defp determine_agent_status(failure_count) do
+    if failure_count >= @circuit_breaker_threshold do
+      :circuit_open
+    else
+      :unhealthy
+    end
   end
 
   defp check_agent_health(agent_pid) do
