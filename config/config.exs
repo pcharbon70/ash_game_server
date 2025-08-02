@@ -37,6 +37,19 @@ config :spark,
     ]
   ]
 
+# Configure Jido Framework
+config :jido,
+  # Signal routing configuration
+  signal_router: AshGameServer.Jido.SignalRouter,
+  # Default signal backend
+  signal_backend: {Phoenix.PubSub, AshGameServer.PubSub},
+  # Agent supervision strategy
+  agent_supervisor_opts: [
+    strategy: :one_for_one,
+    max_restarts: 10,
+    max_seconds: 60
+  ]
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"
