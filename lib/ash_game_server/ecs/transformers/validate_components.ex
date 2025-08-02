@@ -53,9 +53,8 @@ defmodule AshGameServer.ECS.Transformers.ValidateComponents do
   
   defp validate_component_attributes(component) do
     with :ok <- validate_unique_attribute_names(component),
-         :ok <- validate_attribute_types(component),
-         :ok <- validate_default_values(component) do
-      :ok
+         :ok <- validate_attribute_types(component) do
+      validate_default_values(component)
     end
   end
   
@@ -108,17 +107,17 @@ defmodule AshGameServer.ECS.Transformers.ValidateComponents do
   end
   
   defp valid_default?(type, value) do
-    case type do
-      :integer -> is_integer(value)
-      :float -> is_float(value) or is_integer(value)
-      :string -> is_binary(value)
-      :boolean -> is_boolean(value)
-      :atom -> is_atom(value)
-      :map -> is_map(value)
-      :list -> is_list(value)
-      :uuid -> is_binary(value)
-      :datetime -> match?(%DateTime{}, value)
-      _ -> false
-    end
+    validate_by_type_group(type, value)
   end
+  
+  defp validate_by_type_group(:integer, value), do: is_integer(value)
+  defp validate_by_type_group(:float, value), do: is_number(value)
+  defp validate_by_type_group(:string, value), do: is_binary(value)
+  defp validate_by_type_group(:uuid, value), do: is_binary(value)
+  defp validate_by_type_group(:boolean, value), do: is_boolean(value)
+  defp validate_by_type_group(:atom, value), do: is_atom(value)
+  defp validate_by_type_group(:map, value), do: is_map(value)
+  defp validate_by_type_group(:list, value), do: is_list(value)
+  defp validate_by_type_group(:datetime, value), do: match?(%DateTime{}, value)
+  defp validate_by_type_group(_, _), do: false
 end
