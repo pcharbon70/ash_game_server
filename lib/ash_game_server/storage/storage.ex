@@ -56,6 +56,18 @@ defmodule AshGameServer.Storage do
   Get multiple components for an entity.
   """
   defdelegate get_components(entity_id, component_names), to: ComponentStorage
+
+  @doc """
+  Get all components for an entity.
+  """
+  def get_components(entity_id) do
+    case EntityManager.get_entity(entity_id) do
+      {:ok, entity_data} ->
+        components = ComponentStorage.get_components(entity_id, entity_data.components)
+        {:ok, components}
+      error -> error
+    end
+  end
   
   @doc """
   Check if an entity has a specific component.
