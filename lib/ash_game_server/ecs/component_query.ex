@@ -335,14 +335,18 @@ defmodule AshGameServer.ECS.ComponentQuery do
 
   defp apply_filters(entities, component_name, filters) do
     Enum.filter(entities, fn entity_id ->
-      case EnhancedStorage.get_component(entity_id, component_name) do
-        {:ok, data} ->
-          Enum.all?(filters, fn {field, op, value} ->
-            apply_filter(Map.get(data, field), op, value)
-          end)
-        _ -> false
-      end
+      entity_matches_filters?(entity_id, component_name, filters)
     end)
+  end
+
+  defp entity_matches_filters?(entity_id, component_name, filters) do
+    case EnhancedStorage.get_component(entity_id, component_name) do
+      {:ok, data} ->
+        Enum.all?(filters, fn {field, op, value} ->
+          apply_filter(Map.get(data, field), op, value)
+        end)
+      _ -> false
+    end
   end
 
   defp apply_filter(field_value, :eq, value), do: field_value == value

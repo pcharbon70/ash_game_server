@@ -178,17 +178,19 @@ defmodule AshGameServer.ECS.EnhancedStorage do
       if Map.has_key?(data, index_name) do
         value = Map.get(data, index_name)
         table_name = index_table_name(component_name, index_name)
-        
-        # Add entity to index
-        case :ets.lookup(table_name, value) do
-          [{^value, entity_ids}] ->
-            updated_ids = [entity_id | entity_ids] |> Enum.uniq()
-            :ets.insert(table_name, {value, updated_ids})
-          [] ->
-            :ets.insert(table_name, {value, [entity_id]})
-        end
+        add_entity_to_index(table_name, value, entity_id)
       end
     end)
+  end
+
+  defp add_entity_to_index(table_name, value, entity_id) do
+    case :ets.lookup(table_name, value) do
+      [{^value, entity_ids}] ->
+        updated_ids = [entity_id | entity_ids] |> Enum.uniq()
+        :ets.insert(table_name, {value, updated_ids})
+      [] ->
+        :ets.insert(table_name, {value, [entity_id]})
+    end
   end
   
   defp remove_index_entries(entity_id, component_name, data, indexes) do
@@ -196,20 +198,22 @@ defmodule AshGameServer.ECS.EnhancedStorage do
       if Map.has_key?(data, index_name) do
         value = Map.get(data, index_name)
         table_name = index_table_name(component_name, index_name)
-        
-        # Remove entity from index
-        case :ets.lookup(table_name, value) do
-          [{^value, entity_ids}] ->
-            updated_ids = List.delete(entity_ids, entity_id)
-            if updated_ids == [] do
-              :ets.delete(table_name, value)
-            else
-              :ets.insert(table_name, {value, updated_ids})
-            end
-          [] -> :ok
-        end
+        remove_entity_from_index(table_name, value, entity_id)
       end
     end)
+  end
+
+  defp remove_entity_from_index(table_name, value, entity_id) do
+    case :ets.lookup(table_name, value) do
+      [{^value, entity_ids}] ->
+        updated_ids = List.delete(entity_ids, entity_id)
+        if updated_ids == [] do
+          :ets.delete(table_name, value)
+        else
+          :ets.insert(table_name, {value, updated_ids})
+        end
+      [] -> :ok
+    end
   end
   
   # Server Callbacks
@@ -319,16 +323,7 @@ defmodule AshGameServer.ECS.EnhancedStorage do
         indexes = Map.get(metadata, :indexes, [])
         
         # Create ETS tables for each index
-        new_tables = Enum.reduce(indexes, state.index_tables, fn index_name, acc ->
-          table_name = index_table_name(component_name, index_name)
-          
-          if not Map.has_key?(acc, table_name) do
-            :ets.new(table_name, [:named_table, :public, :bag])
-            Map.put(acc, table_name, {component_name, index_name})
-          else
-            acc
-          end
-        end)
+        new_tables = create_index_tables(indexes, component_name, state.index_tables)
         
         {:noreply, %{state | index_tables: new_tables}}
         
@@ -347,6 +342,19 @@ defmodule AshGameServer.ECS.EnhancedStorage do
     {:noreply, state}
   end
   
+  defp create_index_tables(indexes, component_name, existing_tables) do
+    Enum.reduce(indexes, existing_tables, fn index_name, acc ->
+      table_name = index_table_name(component_name, index_name)
+      
+      if Map.has_key?(acc, table_name) do
+        acc
+      else
+        :ets.new(table_name, [:named_table, :public, :bag])
+        Map.put(acc, table_name, {component_name, index_name})
+      end
+    end)
+  end
+
   defp optimize_component_storage_async(component_name) do
     # Rebuild indexes for better performance
     case ComponentRegistry.get_component(component_name) do
