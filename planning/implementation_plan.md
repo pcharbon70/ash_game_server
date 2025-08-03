@@ -181,12 +181,12 @@ This section sets up the initial project structure and integrates all required d
   - [x] Add query analysis
   - [x] Build optimization hints
 
-#### 1.1.6 Unit Tests
-- [ ] Test Jido agent lifecycle
-- [ ] Test Ash resource operations
-- [ ] Test Spark DSL compilation
-- [ ] Test ETS storage operations
-- [ ] Test framework integration
+#### 1.1.6 Integration Tests ✅
+- [x] Test Jido agent lifecycle
+- [x] Test Ash resource operations
+- [x] Test Spark DSL compilation
+- [x] Test ETS storage operations
+- [x] Test framework integration
 
 ### 1.2 ECS Core Implementation
 
