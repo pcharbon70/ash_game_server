@@ -356,7 +356,7 @@ defmodule AshGameServer.Integration.FrameworkIntegrationTest do
           end)
         end
         
-        Task.await_many(tasks, 30000)
+        Task.await_many(tasks, 30_000)
       end)
       
       assert length(players) == 1000

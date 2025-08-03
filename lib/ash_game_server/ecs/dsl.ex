@@ -3,7 +3,7 @@ defmodule AshGameServer.ECS.DSL do
   Main DSL module that combines all ECS extensions.
   Provides a unified interface for defining components, systems, and entities.
   """
-  
+
   defmacro __using__(_opts) do
     quote do
       use Spark.Dsl,

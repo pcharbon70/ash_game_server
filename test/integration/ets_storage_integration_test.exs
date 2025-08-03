@@ -149,7 +149,7 @@ defmodule AshGameServer.Integration.EtsStorageIntegrationTest do
         end)
       end
       
-      entity_ids = Task.await_many(tasks, 10000)
+      entity_ids = Task.await_many(tasks, 10_000)
       
       # All entities should be created
       assert length(entity_ids) == 1000
