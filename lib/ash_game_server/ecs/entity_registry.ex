@@ -470,21 +470,19 @@ defmodule AshGameServer.ECS.EntityRegistry do
   end
 
   defp entity_matches_filters?(entity, filters) do
-    Enum.all?(filters, fn {key, value} ->
-      case key do
-        :status -> entity.status == value
-        :archetype -> entity.archetype == value
-        :parent_id -> entity.parent_id == value
-        :tag -> value in entity.tags
-        :min_version -> entity.version >= value
-        :max_version -> entity.version <= value
-        :created_after -> DateTime.compare(entity.created_at, value) in [:gt, :eq]
-        :created_before -> DateTime.compare(entity.created_at, value) in [:lt, :eq]
-        :has_components -> Enum.all?(value, &(&1 in entity.components))
-        _ -> true
-      end
-    end)
+    Enum.all?(filters, fn filter -> matches_single_filter?(entity, filter) end)
   end
+  
+  defp matches_single_filter?(entity, {:status, value}), do: entity.status == value
+  defp matches_single_filter?(entity, {:archetype, value}), do: entity.archetype == value
+  defp matches_single_filter?(entity, {:parent_id, value}), do: entity.parent_id == value
+  defp matches_single_filter?(entity, {:tag, value}), do: value in entity.tags
+  defp matches_single_filter?(entity, {:min_version, value}), do: entity.version >= value
+  defp matches_single_filter?(entity, {:max_version, value}), do: entity.version <= value
+  defp matches_single_filter?(entity, {:created_after, value}), do: DateTime.compare(entity.created_at, value) in [:gt, :eq]
+  defp matches_single_filter?(entity, {:created_before, value}), do: DateTime.compare(entity.created_at, value) in [:lt, :eq]
+  defp matches_single_filter?(entity, {:has_components, value}), do: Enum.all?(value, &(&1 in entity.components))
+  defp matches_single_filter?(_entity, _), do: true
 
   defp do_garbage_collect do
     destroyed_entities = query_by_status(:destroyed)
@@ -553,16 +551,7 @@ defmodule AshGameServer.ECS.EntityRegistry do
   defp update_statistics(event) do
     case :ets.lookup(@statistics_table, :counters) do
       [{:counters, stats}] ->
-        updated_stats = 
-          case event do
-            :entity_created -> Map.update!(stats, :entities_created, &(&1 + 1))
-            :entity_updated -> Map.update!(stats, :entities_updated, &(&1 + 1))
-            :entity_unregistered -> Map.update!(stats, :entities_unregistered, &(&1 + 1))
-            :query_executed -> Map.update!(stats, :queries_executed, &(&1 + 1))
-            :gc_executed -> Map.update!(stats, :gc_executions, &(&1 + 1))
-            :cleanup_executed -> Map.update!(stats, :cleanup_executions, &(&1 + 1))
-            :indexes_rebuilt -> Map.update!(stats, :indexes_rebuilt, &(&1 + 1))
-          end
+        updated_stats = increment_stat(stats, event)
           |> Map.put(:last_updated, DateTime.utc_now())
         
         :ets.insert(@statistics_table, {:counters, updated_stats})
@@ -570,6 +559,14 @@ defmodule AshGameServer.ECS.EntityRegistry do
       [] -> initialize_statistics()
     end
   end
+  
+  defp increment_stat(stats, :entity_created), do: Map.update!(stats, :entities_created, &(&1 + 1))
+  defp increment_stat(stats, :entity_updated), do: Map.update!(stats, :entities_updated, &(&1 + 1))
+  defp increment_stat(stats, :entity_unregistered), do: Map.update!(stats, :entities_unregistered, &(&1 + 1))
+  defp increment_stat(stats, :query_executed), do: Map.update!(stats, :queries_executed, &(&1 + 1))
+  defp increment_stat(stats, :gc_executed), do: Map.update!(stats, :gc_executions, &(&1 + 1))
+  defp increment_stat(stats, :cleanup_executed), do: Map.update!(stats, :cleanup_executions, &(&1 + 1))
+  defp increment_stat(stats, :indexes_rebuilt), do: Map.update!(stats, :indexes_rebuilt, &(&1 + 1))
 
   defp update_periodic_statistics do
     current_stats = %{

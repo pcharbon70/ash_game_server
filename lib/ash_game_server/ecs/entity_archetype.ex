@@ -134,9 +134,8 @@ defmodule AshGameServer.ECS.EntityArchetype do
   @spec validate_archetype(archetype_definition()) :: :ok | {:error, term()}
   def validate_archetype(archetype_def) do
     with :ok <- validate_required_fields(archetype_def),
-         :ok <- validate_components(archetype_def.components),
-         :ok <- validate_inheritance(archetype_def) do
-      :ok
+         :ok <- validate_components(archetype_def.components) do
+      validate_inheritance(archetype_def)
     end
   end
 
@@ -304,9 +303,8 @@ defmodule AshGameServer.ECS.EntityArchetype do
 
   defp do_spawn_entity(archetype_name, opts, state) do
     with {:ok, complete_components} <- get_complete_components_cached(archetype_name, state),
-         {:ok, final_components} <- apply_variations_and_overrides(complete_components, opts),
-         {:ok, entity_id} <- create_entity_with_components(archetype_name, final_components, opts) do
-      {:ok, entity_id}
+         {:ok, final_components} <- apply_variations_and_overrides(complete_components, opts) do
+      create_entity_with_components(archetype_name, final_components, opts)
     end
   end
 
@@ -345,18 +343,24 @@ defmodule AshGameServer.ECS.EntityArchetype do
       # Circular inheritance detected
       archetype_def.components
     else
-      base_components = case archetype_def.parent do
-        nil -> []
-        parent_name ->
-          case get_archetype(parent_name) do
-            {:ok, parent_def} ->
-              collect_inherited_components(parent_def, [archetype_def.name | visited])
-            _ -> []
-          end
-      end
-      
+      base_components = get_parent_components(archetype_def, visited)
       # Merge parent components with archetype components (archetype overrides parent)
       merge_component_templates(base_components, archetype_def.components)
+    end
+  end
+  
+  defp get_parent_components(archetype_def, visited) do
+    case archetype_def.parent do
+      nil -> []
+      parent_name -> fetch_parent_components(parent_name, archetype_def.name, visited)
+    end
+  end
+  
+  defp fetch_parent_components(parent_name, current_name, visited) do
+    case get_archetype(parent_name) do
+      {:ok, parent_def} ->
+        collect_inherited_components(parent_def, [current_name | visited])
+      _ -> []
     end
   end
 
@@ -489,15 +493,23 @@ defmodule AshGameServer.ECS.EntityArchetype do
     if current_name == parent_name or current_name in visited do
       {:error, {:circular_inheritance, current_name}}
     else
-      case get_archetype(parent_name) do
-        {:ok, parent_def} ->
-          case parent_def.parent do
-            nil -> :ok
-            grandparent_name ->
-              check_circular_inheritance(current_name, grandparent_name, [parent_name | visited])
-          end
-        _ -> :ok
-      end
+      check_parent_hierarchy(current_name, parent_name, visited)
+    end
+  end
+  
+  defp check_parent_hierarchy(current_name, parent_name, visited) do
+    case get_archetype(parent_name) do
+      {:ok, parent_def} ->
+        check_grandparent(current_name, parent_def, parent_name, visited)
+      _ -> :ok
+    end
+  end
+  
+  defp check_grandparent(current_name, parent_def, parent_name, visited) do
+    case parent_def.parent do
+      nil -> :ok
+      grandparent_name ->
+        check_circular_inheritance(current_name, grandparent_name, [parent_name | visited])
     end
   end
 

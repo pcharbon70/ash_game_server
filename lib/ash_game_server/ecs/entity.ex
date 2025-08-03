@@ -127,44 +127,50 @@ defmodule AshGameServer.ECS.Entity do
   def update(entity_id, updates) do
     case AshGameServer.ECS.EntityRegistry.get_entity(entity_id) do
       {:ok, entity} ->
-        updated_entity = 
-          updates
-          |> Enum.reduce(entity, fn {key, value}, acc ->
-            case key do
-              :metadata -> 
-                %{acc | 
-                  metadata: Map.merge(acc.metadata, value),
-                  updated_at: DateTime.utc_now(),
-                  version: acc.version + 1
-                }
-              :tags ->
-                %{acc | 
-                  tags: Enum.uniq(acc.tags ++ value),
-                  updated_at: DateTime.utc_now(),
-                  version: acc.version + 1
-                }
-              :status ->
-                event = status_to_event(value)
-                %{acc | 
-                  status: value, 
-                  updated_at: DateTime.utc_now(),
-                  version: acc.version + 1,
-                  lifecycle_events: [event | acc.lifecycle_events]
-                }
-              _ ->
-                %{acc | 
-                  key => value,
-                  updated_at: DateTime.utc_now(),
-                  version: acc.version + 1
-                }
-            end
-          end)
-
+        updated_entity = apply_updates(entity, updates)
         AshGameServer.ECS.EntityRegistry.update_entity(updated_entity)
         {:ok, updated_entity}
       
       error -> error
     end
+  end
+  
+  defp apply_updates(entity, updates) do
+    Enum.reduce(updates, entity, &apply_single_update/2)
+  end
+  
+  defp apply_single_update({:metadata, value}, entity) do
+    %{entity | 
+      metadata: Map.merge(entity.metadata, value),
+      updated_at: DateTime.utc_now(),
+      version: entity.version + 1
+    }
+  end
+  
+  defp apply_single_update({:tags, value}, entity) do
+    %{entity | 
+      tags: Enum.uniq(entity.tags ++ value),
+      updated_at: DateTime.utc_now(),
+      version: entity.version + 1
+    }
+  end
+  
+  defp apply_single_update({:status, value}, entity) do
+    event = status_to_event(value)
+    %{entity | 
+      status: value, 
+      updated_at: DateTime.utc_now(),
+      version: entity.version + 1,
+      lifecycle_events: [event | entity.lifecycle_events]
+    }
+  end
+  
+  defp apply_single_update({key, value}, entity) do
+    %{entity | 
+      key => value,
+      updated_at: DateTime.utc_now(),
+      version: entity.version + 1
+    }
   end
 
   @doc """

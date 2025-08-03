@@ -616,32 +616,37 @@ defmodule AshGameServer.ECS.EntityRelationships do
 
   defp do_add_to_group(entity_id, group_id) do
     case EntityRegistry.exists?(entity_id) do
-      true ->
-        case :ets.lookup(@groups_table, group_id) do
-          [{^group_id, group}] ->
-            if entity_id in group.members do
-              {:error, :already_member}
-            else
-              # Update group
-              updated_members = [entity_id | group.members]
-              updated_group = %{group |
-                members: updated_members,
-                updated_at: DateTime.utc_now()
-              }
-              
-              :ets.insert(@groups_table, {group_id, updated_group})
-              :ets.insert(@group_members_table, {entity_id, group_id})
-              
-              :ok
-            end
-          
-          [] ->
-            {:error, :group_not_found}
-        end
-      
-      false ->
-        {:error, :entity_not_found}
+      true -> add_entity_to_existing_group(entity_id, group_id)
+      false -> {:error, :entity_not_found}
     end
+  end
+  
+  defp add_entity_to_existing_group(entity_id, group_id) do
+    case :ets.lookup(@groups_table, group_id) do
+      [{^group_id, group}] -> add_member_to_group(entity_id, group_id, group)
+      [] -> {:error, :group_not_found}
+    end
+  end
+  
+  defp add_member_to_group(entity_id, group_id, group) do
+    if entity_id in group.members do
+      {:error, :already_member}
+    else
+      update_group_membership(entity_id, group_id, group)
+    end
+  end
+  
+  defp update_group_membership(entity_id, group_id, group) do
+    updated_members = [entity_id | group.members]
+    updated_group = %{group |
+      members: updated_members,
+      updated_at: DateTime.utc_now()
+    }
+    
+    :ets.insert(@groups_table, {group_id, updated_group})
+    :ets.insert(@group_members_table, {entity_id, group_id})
+    
+    :ok
   end
 
   defp do_remove_from_group(entity_id, group_id) do

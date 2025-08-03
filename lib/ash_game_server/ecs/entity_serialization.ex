@@ -234,29 +234,35 @@ defmodule AshGameServer.ECS.EntitySerialization do
     {:ok, %{total: non_neg_integer(), success: non_neg_integer(), errors: [term()]}} | {:error, term()}
   def import_batch(batch_stream, opts \\ %{}) do
     results = %{total: 0, success: 0, errors: []}
-    
-    final_results = Enum.reduce(batch_stream, results, fn batch_result, acc ->
-      case batch_result do
-        {:ok, export_result} ->
-          case import_entities(export_result, opts) do
-            {:ok, entity_ids} ->
-              %{acc | 
-                total: acc.total + length(entity_ids),
-                success: acc.success + length(entity_ids)
-              }
-            {:error, error} ->
-              %{acc | 
-                total: acc.total + length(export_result.entities),
-                errors: [error | acc.errors]
-              }
-          end
-        
-        {:error, error} ->
-          %{acc | errors: [error | acc.errors]}
-      end
-    end)
-    
+    final_results = Enum.reduce(batch_stream, results, &process_batch(&1, &2, opts))
     {:ok, final_results}
+  end
+  
+  defp process_batch({:ok, export_result}, acc, opts) do
+    case import_entities(export_result, opts) do
+      {:ok, entity_ids} -> 
+        update_batch_success(acc, entity_ids)
+      {:error, error} -> 
+        update_batch_error(acc, export_result, error)
+    end
+  end
+  
+  defp process_batch({:error, error}, acc, _opts) do
+    %{acc | errors: [error | acc.errors]}
+  end
+  
+  defp update_batch_success(acc, entity_ids) do
+    %{acc | 
+      total: acc.total + length(entity_ids),
+      success: acc.success + length(entity_ids)
+    }
+  end
+  
+  defp update_batch_error(acc, export_result, error) do
+    %{acc | 
+      total: acc.total + length(export_result.entities),
+      errors: [error | acc.errors]
+    }
   end
 
   # Versioning and Migration
@@ -451,25 +457,30 @@ defmodule AshGameServer.ECS.EntitySerialization do
 
   defp import_components(entity_id, components, merge_strategy) do
     Enum.each(components, fn {component_name, component_data} ->
-      case merge_strategy do
-        :replace ->
-          Storage.add_component(entity_id, component_name, component_data)
-        :merge ->
-          case Storage.get_component(entity_id, component_name) do
-            {:ok, existing_data} ->
-              merged_data = Map.merge(existing_data, component_data)
-              Storage.add_component(entity_id, component_name, merged_data)
-            {:error, :not_found} ->
-              Storage.add_component(entity_id, component_name, component_data)
-          end
-        :skip_existing ->
-          case Storage.get_component(entity_id, component_name) do
-            {:error, :not_found} ->
-              Storage.add_component(entity_id, component_name, component_data)
-            _ -> :ok
-          end
-      end
+      import_single_component(entity_id, component_name, component_data, merge_strategy)
     end)
+  end
+  
+  defp import_single_component(entity_id, component_name, component_data, :replace) do
+    Storage.add_component(entity_id, component_name, component_data)
+  end
+  
+  defp import_single_component(entity_id, component_name, component_data, :merge) do
+    case Storage.get_component(entity_id, component_name) do
+      {:ok, existing_data} ->
+        merged_data = Map.merge(existing_data, component_data)
+        Storage.add_component(entity_id, component_name, merged_data)
+      {:error, :not_found} ->
+        Storage.add_component(entity_id, component_name, component_data)
+    end
+  end
+  
+  defp import_single_component(entity_id, component_name, component_data, :skip_existing) do
+    case Storage.get_component(entity_id, component_name) do
+      {:error, :not_found} ->
+        Storage.add_component(entity_id, component_name, component_data)
+      _ -> :ok
+    end
   end
 
   defp schedule_relationship_import(entity_id, relationships) do
