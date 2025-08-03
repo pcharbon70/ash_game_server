@@ -277,18 +277,7 @@ defmodule AshGameServer.ECS.ComponentTools do
       entities = Storage.query_entities([component_name])
       
       migration_results = Enum.map(entities, fn entity_id ->
-        case EnhancedStorage.get_component(entity_id, component_name) do
-          {:ok, data} ->
-            case ComponentRegistry.migrate_component(component_name, data, from_version) do
-              {:ok, migrated_data} ->
-                EnhancedStorage.update_component(entity_id, component_name, migrated_data)
-                %{entity_id: entity_id, status: :success}
-              error ->
-                %{entity_id: entity_id, status: :error, error: error}
-            end
-          error ->
-            %{entity_id: entity_id, status: :error, error: error}
-        end
+        migrate_single_entity(entity_id, component_name, from_version)
       end)
       
       successful = Enum.count(migration_results, & &1.status == :success)
@@ -309,6 +298,21 @@ defmodule AshGameServer.ECS.ComponentTools do
   end
   
   # Private Helper Functions
+
+  defp migrate_single_entity(entity_id, component_name, from_version) do
+    case EnhancedStorage.get_component(entity_id, component_name) do
+      {:ok, data} ->
+        case ComponentRegistry.migrate_component(component_name, data, from_version) do
+          {:ok, migrated_data} ->
+            EnhancedStorage.update_component(entity_id, component_name, migrated_data)
+            %{entity_id: entity_id, status: :success}
+          error ->
+            %{entity_id: entity_id, status: :error, error: error}
+        end
+      error ->
+        %{entity_id: entity_id, status: :error, error: error}
+    end
+  end
   
   defp validate_component_data(component_name, data) do
     case ComponentRegistry.get_component(component_name) do
