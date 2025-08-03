@@ -127,6 +127,7 @@ defmodule AshGameServer.GameCore.GameSession do
     # Start the game session
     update :start do
       accept []
+      require_atomic? false
       
       change fn changeset, _context ->
         changeset
@@ -156,6 +157,8 @@ defmodule AshGameServer.GameCore.GameSession do
     
     # Complete the game session
     update :complete do
+      require_atomic? false
+      
       argument :final_state, :map do
         allow_nil? false
       end
@@ -173,6 +176,7 @@ defmodule AshGameServer.GameCore.GameSession do
     # Cancel the game session
     update :cancel do
       accept []
+      require_atomic? false
       
       change fn changeset, _context ->
         changeset
@@ -185,6 +189,8 @@ defmodule AshGameServer.GameCore.GameSession do
     
     # Add a player to the session
     update :add_player do
+      require_atomic? false
+      
       argument :player_id, :uuid do
         allow_nil? false
       end
@@ -205,6 +211,8 @@ defmodule AshGameServer.GameCore.GameSession do
     
     # Remove a player from the session
     update :remove_player do
+      require_atomic? false
+      
       argument :player_id, :uuid do
         allow_nil? false
       end
@@ -219,6 +227,8 @@ defmodule AshGameServer.GameCore.GameSession do
     
     # Update game state
     update :update_game_state do
+      require_atomic? false
+      
       argument :state_changes, :map do
         allow_nil? false
       end

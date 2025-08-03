@@ -17,8 +17,13 @@ defmodule AshGameServer.Application do
       # Start Phoenix PubSub
       {Phoenix.PubSub, name: AshGameServer.PubSub},
       # Start Jido framework integration
-      AshGameServer.Jido
-      # Additional game-specific supervisors will be added here
+      AshGameServer.Jido,
+      # Start ETS storage system
+      AshGameServer.Storage.TableSupervisor,
+      # Start persistence bridge
+      AshGameServer.Storage.PersistenceBridge,
+      # Start performance monitoring
+      AshGameServer.Storage.PerformanceMonitor
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

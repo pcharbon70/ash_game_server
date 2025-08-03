@@ -1,188 +1,229 @@
 defmodule AshGameServer.ECS.SystemExtension do
   @moduledoc """
-  Spark DSL extension for defining ECS systems.
+  Spark DSL extension for defining ECS systems and their behaviors.
   
-  Systems contain the game logic and operate on entities that have
-  specific components. They define queries for components and the
-  operations to perform on matching entities.
+  Systems process entities with specific component combinations,
+  implementing the game logic and rules.
   """
   
-  # Define systems section and entities
-  defp system_sections do
-    [
-      %Spark.Dsl.Section{
-        name: :systems,
-        describe: """
-        Define systems for the ECS architecture.
+  # Define filter entity first (used by system entity)
+  @filter_entity %Spark.Dsl.Entity{
+    name: :filter,
+    describe: "Additional filters for entity selection",
+    examples: [
+      "filter :health_above_zero, fn entity -> entity.health.current > 0 end",
+      "filter :in_range, fn entity -> entity.position.x < 100 end"
+    ],
+    target: AshGameServer.ECS.System.Filter,
+    args: [:name, :function],
+    schema: [
+      name: [
+        type: :atom,
+        required: true,
+        doc: "The name of the filter"
+      ],
+      function: [
+        type: {:fun, 1},
+        required: true,
+        doc: "Filter function that returns boolean"
+      ]
+    ]
+  }
+  
+  # Define event entity (used by system entity)
+  @event_entity %Spark.Dsl.Entity{
+    name: :on_event,
+    describe: "Events that trigger system execution",
+    examples: [
+      "on_event :player_input",
+      "on_event :collision_detected"
+    ],
+    target: AshGameServer.ECS.System.Event,
+    args: [:name],
+    schema: [
+      name: [
+        type: :atom,
+        required: true,
+        doc: "The event name"
+      ],
+      priority: [
+        type: :integer,
+        default: 0,
+        doc: "Priority for handling this event"
+      ]
+    ]
+  }
+  
+  # Define system entity
+  @system_entity %Spark.Dsl.Entity{
+    name: :system,
+    describe: """
+    Defines a system that processes entities with specific components.
+    
+    Systems contain the game logic and operate on entities that match
+    their component requirements.
+    """,
+    examples: [
+      """
+      system :physics do
+        requires [:position, :velocity, :mass]
+        optional [:acceleration]
+        run_every 16
+        priority :high
         
-        Systems contain the game logic and operate on entities that match
-        their component queries. They run in priority order each game tick.
-        """,
-        examples: [
-          """
-          systems do
-            system :movement do
-              query [:position, :velocity]
-              priority 10
-              
-              execute do
-                fn entities ->
-                  Enum.each(entities, fn entity ->
-                    # Update position based on velocity
-                  end)
-                end
-              end
-            end
-            
-            system :collision do
-              query [:position, :collider]
-              priority 20
-              
-              execute do
-                fn entities ->
-                  # Check for collisions
-                end
-              end
-            end
-          end
-          """
-        ],
-        entities: [system_entity()],
-        schema: [
-          execution_model: [
-            type: {:in, [:sequential, :parallel, :async]},
-            default: :sequential,
-            doc: "How systems are executed"
-          ],
-          tick_rate: [
-            type: :integer,
-            default: 60,
-            doc: "Target ticks per second"
-          ]
-        ]
-      }
-    ]
-  end
-  
-  defp system_entity do
-    %Spark.Dsl.Entity{
-      name: :system,
-      describe: """
-      Defines a system that processes entities with specific components.
-      
-      Systems contain the game logic and run periodically to update entity state.
+        process fn entity, components ->
+          # Physics calculations
+          {:ok, updated_components}
+        end
+      end
       """,
-      examples: [
-        """
+      """
+      system :ai_controller do
+        requires [:position, :ai_state]
+        run_when :on_event, event: :ai_tick
+        
+        process fn entity, components ->
+          # AI decision making
+          {:ok, %{ai_state: new_state}}
+        end
+      end
+      """
+    ],
+    target: AshGameServer.ECS.System,
+    args: [:name],
+    schema: [
+      name: [
+        type: :atom,
+        required: true,
+        doc: "The name of the system"
+      ],
+      description: [
+        type: :string,
+        doc: "Description of what this system does"
+      ],
+      requires: [
+        type: {:list, :atom},
+        default: [],
+        doc: "Components that entities must have to be processed"
+      ],
+      optional: [
+        type: {:list, :atom},
+        default: [],
+        doc: "Optional components that may be used if present"
+      ],
+      excludes: [
+        type: {:list, :atom},
+        default: [],
+        doc: "Components that entities must NOT have"
+      ],
+      run_every: [
+        type: :integer,
+        doc: "Run interval in milliseconds"
+      ],
+      run_when: [
+        type: {:in, [:always, :on_event, :manual]},
+        default: :always,
+        doc: "When the system should run"
+      ],
+      priority: [
+        type: {:in, [:critical, :high, :medium, :low, :idle]},
+        default: :medium,
+        doc: "Execution priority"
+      ],
+      max_entities: [
+        type: :integer,
+        doc: "Maximum entities to process per run"
+      ],
+      batch_size: [
+        type: :integer,
+        default: 100,
+        doc: "Number of entities to process in each batch"
+      ],
+      timeout: [
+        type: :integer,
+        default: 5000,
+        doc: "Maximum time in ms for processing"
+      ],
+      enabled: [
+        type: :boolean,
+        default: true,
+        doc: "Whether the system is enabled"
+      ]
+    ],
+    entities: [
+      filters: [@filter_entity],
+      events: [@event_entity]
+    ]
+  }
+  
+  # Define systems section
+  @system_section %Spark.Dsl.Section{
+    name: :systems,
+    describe: """
+    Define systems that process entities with specific components.
+    
+    Systems implement the game logic by operating on entities that have
+    specific component combinations. They can run on different schedules
+    and have various execution priorities.
+    """,
+    examples: [
+      """
+      systems do
         system :movement do
-          query [:position, :velocity]
+          requires [:position, :velocity]
+          run_every 16  # Run every 16ms (60 FPS)
+          priority :high
           
-          execute do
-            fn entities ->
-              Enum.map(entities, &update_position/1)
-            end
+          process fn entity, components ->
+            # Update position based on velocity
+            new_position = %{
+              x: components.position.x + components.velocity.dx,
+              y: components.position.y + components.velocity.dy
+            }
+            
+            {:ok, %{position: new_position}}
           end
         end
-        """,
-        """
-        system :combat do
-          query [:health, :damage], as: :targets
-          query [:attacker, :weapon], as: :attackers
+        
+        system :collision_detection do
+          requires [:position, :collider]
+          run_every 33  # Run every 33ms (30 FPS)
+          priority :medium
           
-          priority 10
-          run_every 100
+          process fn entity, components ->
+            # Check for collisions
+            # ...implementation...
+          end
         end
-        """
+      end
+      """
+    ],
+    entities: [@system_entity],
+    schema: [
+      parallel_execution: [
+        type: :boolean,
+        default: true,
+        doc: "Whether systems can execute in parallel"
       ],
-      target: AshGameServer.ECS.System,
-      args: [:name],
-      schema: [
-        name: [
-          type: :atom,
-          required: true,
-          doc: "The name of the system"
-        ],
-        description: [
-          type: :string,
-          doc: "Description of what this system does"
-        ],
-        priority: [
-          type: :integer,
-          default: 50,
-          doc: "Execution priority (lower runs first)"
-        ],
-        run_every: [
-          type: :integer,
-          doc: "Run interval in milliseconds (nil for every tick)"
-        ],
-        parallel: [
-          type: :boolean,
-          default: false,
-          doc: "Whether this system can run in parallel"
-        ],
-        enabled: [
-          type: :boolean,
-          default: true,
-          doc: "Whether this system is enabled by default"
-        ]
-      ],
-      entities: [
-        queries: [query_entity()]
+      max_workers: [
+        type: :integer,
+        doc: "Maximum number of parallel workers"
       ]
-    }
-  end
-  
-  defp query_entity do
-    %Spark.Dsl.Entity{
-      name: :query,
-      describe: "Defines a component query for the system",
-      examples: [
-        "query [:position, :velocity]",
-        "query [:health, :damage], as: :damageable"
-      ],
-      target: AshGameServer.ECS.System.Query,
-      args: [:components],
-      schema: [
-        components: [
-          type: {:list, :atom},
-          required: true,
-          doc: "List of required components"
-        ],
-        as: [
-          type: :atom,
-          doc: "Alias for this query"
-        ],
-        optional: [
-          type: {:list, :atom},
-          default: [],
-          doc: "Optional components to include if present"
-        ],
-        exclude: [
-          type: {:list, :atom},
-          default: [],
-          doc: "Components that must NOT be present"
-        ]
-      ]
-    }
-  end
-  
-  use Spark.Dsl.Extension
-  
-  @impl true
-  def sections, do: system_sections()
-  
-  @impl true
-  def transformers do
-    [
-      AshGameServer.ECS.Transformers.ValidateSystems,
-      AshGameServer.ECS.Transformers.OrderSystems
     ]
-  end
+  }
+  
+  # Use Spark.Dsl.Extension with sections and transformers defined inline
+  use Spark.Dsl.Extension,
+    sections: [@system_section],
+    transformers: [
+      AshGameServer.ECS.Transformers.ValidateSystems,
+      AshGameServer.ECS.Transformers.OptimizeQueries
+    ]
   
   @doc """
   Get all defined systems for a module.
   """
-  def systems(module) do
+  def get_systems(module) do
     Spark.Dsl.Extension.get_entities(module, [:systems])
   end
   
@@ -191,23 +232,28 @@ defmodule AshGameServer.ECS.SystemExtension do
   """
   def get_system(module, name) do
     module
-    |> systems()
+    |> get_systems()
     |> Enum.find(&(&1.name == name))
   end
   
   @doc """
-  Get systems in execution order (by priority).
+  Get systems that require a specific component.
   """
-  def ordered_systems(module) do
+  def systems_for_component(module, component_name) do
     module
-    |> systems()
-    |> Enum.sort_by(& &1.priority)
+    |> get_systems()
+    |> Enum.filter(fn system ->
+      component_name in Map.get(system, :requires, [])
+    end)
   end
   
   @doc """
-  Get the execution model for systems.
+  Check if a system is enabled.
   """
-  def execution_model(module) do
-    Spark.Dsl.Extension.get_opt(module, [:systems], :execution_model, :sequential)
+  def system_enabled?(module, name) do
+    case get_system(module, name) do
+      nil -> false
+      system -> Map.get(system, :enabled, true)
+    end
   end
 end
