@@ -53,9 +53,8 @@ defmodule AshGameServer.ECS.Transformers.ValidateComponents do
   
   defp validate_component_attributes(component) do
     with :ok <- validate_unique_attribute_names(component),
-         :ok <- validate_attribute_types(component),
-         :ok <- validate_default_values(component) do
-      :ok
+         :ok <- validate_attribute_types(component) do
+      validate_default_values(component)
     end
   end
   
@@ -108,17 +107,21 @@ defmodule AshGameServer.ECS.Transformers.ValidateComponents do
   end
   
   defp valid_default?(type, value) do
-    case type do
-      :integer -> is_integer(value)
-      :float -> is_float(value) or is_integer(value)
-      :string -> is_binary(value)
-      :boolean -> is_boolean(value)
-      :atom -> is_atom(value)
-      :map -> is_map(value)
-      :list -> is_list(value)
-      :uuid -> is_binary(value)
-      :datetime -> match?(%DateTime{}, value)
-      _ -> false
+    type_validators = %{
+      integer: &is_integer/1,
+      float: &is_number/1,
+      string: &is_binary/1,
+      boolean: &is_boolean/1,
+      atom: &is_atom/1,
+      map: &is_map/1,
+      list: &is_list/1,
+      uuid: &is_binary/1,
+      datetime: &match?(%DateTime{}, &1)
+    }
+    
+    case Map.get(type_validators, type) do
+      nil -> false
+      validator -> validator.(value)
     end
   end
 end

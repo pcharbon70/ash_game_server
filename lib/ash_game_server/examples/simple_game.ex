@@ -11,34 +11,38 @@ defmodule AshGameServer.Examples.SimpleGame do
   # For now, let's create a simple module that demonstrates the DSL concepts
   def example_components do
     [
-      %AshGameServer.ECS.Component{
+      %{
         name: :position,
+        type: :struct,
         attributes: [
-          %AshGameServer.ECS.Component.Attribute{
-            name: :x,
-            type: :float,
-            default: 0.0
-          },
-          %AshGameServer.ECS.Component.Attribute{
-            name: :y,
-            type: :float,
-            default: 0.0
-          }
+          %{name: :x, type: :float, default: 0.0},
+          %{name: :y, type: :float, default: 0.0},
+          %{name: :z, type: :float, default: 0.0}
         ]
       },
-      %AshGameServer.ECS.Component{
-        name: :health,
+      %{
+        name: :velocity,
+        type: :struct,
         attributes: [
-          %AshGameServer.ECS.Component.Attribute{
-            name: :current,
-            type: :integer,
-            default: 100
-          },
-          %AshGameServer.ECS.Component.Attribute{
-            name: :max,
-            type: :integer,
-            default: 100
-          }
+          %{name: :dx, type: :float, default: 0.0},
+          %{name: :dy, type: :float, default: 0.0},
+          %{name: :dz, type: :float, default: 0.0}
+        ]
+      },
+      %{
+        name: :health,
+        type: :struct,
+        attributes: [
+          %{name: :current, type: :integer, default: 100},
+          %{name: :max, type: :integer, default: 100}
+        ]
+      },
+      %{
+        name: :inventory,
+        type: :struct,
+        attributes: [
+          %{name: :items, type: :list, default: []},
+          %{name: :capacity, type: :integer, default: 10}
         ]
       }
     ]

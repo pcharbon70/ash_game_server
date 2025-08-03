@@ -113,6 +113,7 @@ defmodule AshGameServer.Players.Player do
     # Action to update player status
     update :update_status do
       accept [:status]
+      require_atomic? false
       
       change fn changeset, _context ->
         if Ash.Changeset.get_attribute(changeset, :status) == :online do
@@ -125,6 +126,8 @@ defmodule AshGameServer.Players.Player do
     
     # Action to add experience
     update :add_experience do
+      require_atomic? false
+      
       argument :amount, :integer do
         allow_nil? false
         constraints min: 1
@@ -146,6 +149,8 @@ defmodule AshGameServer.Players.Player do
     
     # Action to update stats
     update :update_stats do
+      require_atomic? false
+      
       argument :stat_changes, :map do
         allow_nil? false
       end
