@@ -336,7 +336,7 @@ This section implements the fundamental Entity-Component-System architecture wit
   - [ ] Create Navigation component (future)
   - [x] Add decision making (in Behavior)
 
-#### 1.2.5 Core Game Systems
+#### 1.2.5 Core Game Systems ✅
 - [ ] **1.2.5.1 Create Movement System**
   - [ ] Implement position updates
   - [ ] Add velocity application
