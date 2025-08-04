@@ -37,27 +37,47 @@ defmodule AshGameServer.Components.Rendering.Sprite do
   
   @impl true
   def validate(%__MODULE__{} = sprite) do
-    cond do
-      sprite.texture_id == "" ->
-        {:error, "Sprite texture_id cannot be empty"}
-      
-      sprite.width <= 0 or sprite.height <= 0 ->
-        {:error, "Sprite dimensions must be positive"}
-      
-      sprite.opacity < 0.0 or sprite.opacity > 1.0 ->
-        {:error, "Sprite opacity must be between 0.0 and 1.0"}
-      
-      sprite.blend_mode not in [:normal, :additive, :multiply, :screen] ->
-        {:error, "Invalid blend mode"}
-      
-      not valid_color?(sprite.tint) ->
-        {:error, "Invalid tint color"}
-      
-      sprite.source_rect != nil and not valid_rect?(sprite.source_rect) ->
-        {:error, "Invalid source rectangle"}
-      
-      true ->
-        :ok
+    with :ok <- validate_texture(sprite),
+         :ok <- validate_dimensions(sprite),
+         :ok <- validate_opacity(sprite),
+         :ok <- validate_blend_mode(sprite),
+         :ok <- validate_tint(sprite) do
+      validate_source_rect(sprite)
+    end
+  end
+
+  defp validate_texture(%__MODULE__{texture_id: ""}), do: {:error, "Sprite texture_id cannot be empty"}
+  defp validate_texture(_sprite), do: :ok
+
+  defp validate_dimensions(%__MODULE__{width: w, height: h}) when w <= 0 or h <= 0 do
+    {:error, "Sprite dimensions must be positive"}
+  end
+  defp validate_dimensions(_sprite), do: :ok
+
+  defp validate_opacity(%__MODULE__{opacity: o}) when o < 0.0 or o > 1.0 do
+    {:error, "Sprite opacity must be between 0.0 and 1.0"}
+  end
+  defp validate_opacity(_sprite), do: :ok
+
+  defp validate_blend_mode(%__MODULE__{blend_mode: mode}) when mode not in [:normal, :additive, :multiply, :screen] do
+    {:error, "Invalid blend mode"}
+  end
+  defp validate_blend_mode(_sprite), do: :ok
+
+  defp validate_tint(%__MODULE__{tint: tint}) do
+    if valid_color?(tint) do
+      :ok
+    else
+      {:error, "Invalid tint color"}
+    end
+  end
+
+  defp validate_source_rect(%__MODULE__{source_rect: nil}), do: :ok
+  defp validate_source_rect(%__MODULE__{source_rect: rect}) do
+    if valid_rect?(rect) do
+      :ok
+    else
+      {:error, "Invalid source rectangle"}
     end
   end
   

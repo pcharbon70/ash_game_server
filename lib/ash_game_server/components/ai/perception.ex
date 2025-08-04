@@ -41,32 +41,39 @@ defmodule AshGameServer.Components.AI.Perception do
   
   @impl true
   def validate(%__MODULE__{} = perception) do
-    cond do
-      perception.sight_range < 0 ->
-        {:error, "Sight range cannot be negative"}
-      
-      perception.hearing_range < 0 ->
-        {:error, "Hearing range cannot be negative"}
-      
-      perception.proximity_range < 0 ->
-        {:error, "Proximity range cannot be negative"}
-      
-      perception.field_of_view < 0 or perception.field_of_view > 360 ->
-        {:error, "Field of view must be between 0 and 360 degrees"}
-      
-      perception.max_tracked <= 0 ->
-        {:error, "Max tracked entities must be positive"}
-      
-      perception.forget_time < 0 ->
-        {:error, "Forget time cannot be negative"}
-      
-      perception.alert_level < 0 or perception.alert_level > 1 ->
-        {:error, "Alert level must be between 0 and 1"}
-      
-      true ->
-        :ok
+    with :ok <- validate_ranges(perception),
+         :ok <- validate_field_of_view(perception),
+         :ok <- validate_tracking(perception) do
+      validate_alert_level(perception)
     end
   end
+
+  defp validate_ranges(%__MODULE__{sight_range: s, hearing_range: h, proximity_range: p}) do
+    cond do
+      s < 0 -> {:error, "Sight range cannot be negative"}
+      h < 0 -> {:error, "Hearing range cannot be negative"}
+      p < 0 -> {:error, "Proximity range cannot be negative"}
+      true -> :ok
+    end
+  end
+
+  defp validate_field_of_view(%__MODULE__{field_of_view: fov}) when fov < 0 or fov > 360 do
+    {:error, "Field of view must be between 0 and 360 degrees"}
+  end
+  defp validate_field_of_view(_perception), do: :ok
+
+  defp validate_tracking(%__MODULE__{max_tracked: max, forget_time: time}) do
+    cond do
+      max <= 0 -> {:error, "Max tracked entities must be positive"}
+      time < 0 -> {:error, "Forget time cannot be negative"}
+      true -> :ok
+    end
+  end
+
+  defp validate_alert_level(%__MODULE__{alert_level: level}) when level < 0 or level > 1 do
+    {:error, "Alert level must be between 0 and 1"}
+  end
+  defp validate_alert_level(_perception), do: :ok
   
   @impl true
   def serialize(%__MODULE__{} = perception) do
