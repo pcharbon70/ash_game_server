@@ -9,7 +9,8 @@ defmodule AshGameServer.Systems.MovementSystem do
   use AshGameServer.Systems.SystemBehaviour
   
   alias AshGameServer.Components.Transform.{Position, Velocity}
-  alias AshGameServer.Components.Physics.{RigidBody, Collider}
+  alias AshGameServer.Components.Physics.RigidBody
+  # alias AshGameServer.Components.Physics.Collider  # Unused until collision detection is implemented
   
   @type movement_state :: %{
     delta_time: float(),
@@ -104,34 +105,35 @@ defmodule AshGameServer.Systems.MovementSystem do
     position
   end
   
-  defp collides?(%Position{} = pos1, %Collider{} = col1, %Position{} = pos2, %Collider{} = col2) do
-    dx = pos1.x - pos2.x
-    dy = pos1.y - pos2.y
-    distance = :math.sqrt(dx * dx + dy * dy)
-    
-    distance < (col1.radius + col2.radius)
-  end
-  
-  defp resolve_collision(%Position{} = pos1, %Collider{} = col1, %Position{} = pos2, %Collider{} = col2) do
-    # Simple push-out resolution
-    dx = pos1.x - pos2.x
-    dy = pos1.y - pos2.y
-    distance = :math.sqrt(dx * dx + dy * dy)
-    
-    if distance > 0 do
-      # Normalize and push out
-      overlap = (col1.radius + col2.radius) - distance
-      push_x = (dx / distance) * overlap * 0.5
-      push_y = (dy / distance) * overlap * 0.5
-      
-      %Position{pos1 |
-        x: pos1.x + push_x,
-        y: pos1.y + push_y
-      }
-    else
-      pos1
-    end
-  end
+  # TODO: Enable when collision detection is implemented
+  # defp collides?(%Position{} = pos1, %Collider{} = col1, %Position{} = pos2, %Collider{} = col2) do
+  #   dx = pos1.x - pos2.x
+  #   dy = pos1.y - pos2.y
+  #   distance = :math.sqrt(dx * dx + dy * dy)
+  #   
+  #   distance < (col1.radius + col2.radius)
+  # end
+  # 
+  # defp resolve_collision(%Position{} = pos1, %Collider{} = col1, %Position{} = pos2, %Collider{} = col2) do
+  #   # Simple push-out resolution
+  #   dx = pos1.x - pos2.x
+  #   dy = pos1.y - pos2.y
+  #   distance = :math.sqrt(dx * dx + dy * dy)
+  #   
+  #   if distance > 0 do
+  #     # Normalize and push out
+  #     overlap = (col1.radius + col2.radius) - distance
+  #     push_x = (dx / distance) * overlap * 0.5
+  #     push_y = (dy / distance) * overlap * 0.5
+  #     
+  #     %Position{pos1 |
+  #       x: pos1.x + push_x,
+  #       y: pos1.y + push_y
+  #     }
+  #   else
+  #     pos1
+  #   end
+  # end
   
   defp apply_physics_constraints(entity_id, _position, velocity, rigid_body) do
     # Apply drag/friction

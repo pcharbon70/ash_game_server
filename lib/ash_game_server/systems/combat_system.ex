@@ -184,17 +184,18 @@ defmodule AshGameServer.Systems.CombatSystem do
     :ok
   end
   
-  defp process_dot_effects(entity_id, status_effect, _state) do
-    Enum.each(status_effect.active_effects, fn effect ->
-      if effect.type == :damage_over_time and effect.tick_timer <= 0 do
-        apply_damage(entity_id, effect.damage_per_tick, effect.damage_type)
-        
-        # Reset tick timer
-        updated_effect = %{effect | tick_timer: effect.tick_interval}
-        update_status_effect(entity_id, effect.id, updated_effect)
-      end
-    end)
-  end
+  # TODO: Enable when StatusEffect module is implemented
+  # defp process_dot_effects(entity_id, status_effect, _state) do
+  #   Enum.each(status_effect.active_effects, fn effect ->
+  #     if effect.type == :damage_over_time and effect.tick_timer <= 0 do
+  #       apply_damage(entity_id, effect.damage_per_tick, effect.damage_type)
+  #       
+  #       # Reset tick timer
+  #       updated_effect = %{effect | tick_timer: effect.tick_interval}
+  #       update_status_effect(entity_id, effect.id, updated_effect)
+  #     end
+  #   end)
+  # end
   
   defp process_cooldowns(_state) do
     # In a real implementation, this would query entities with Combat components
@@ -328,27 +329,29 @@ defmodule AshGameServer.Systems.CombatSystem do
     end
   end
   
-  defp update_cooldowns(%Combat{} = combat, delta_ms) do
-    updated_cooldowns = Map.new(combat.cooldowns, fn {ability, time} ->
-      {ability, max(0.0, time - delta_ms)}
-    end)
-    
-    %Combat{combat | cooldowns: updated_cooldowns}
-  end
+  # TODO: Enable when cooldown system is fully integrated
+  # defp update_cooldowns(%Combat{} = combat, delta_ms) do
+  #   updated_cooldowns = Map.new(combat.cooldowns, fn {ability, time} ->
+  #     {ability, max(0.0, time - delta_ms)}
+  #   end)
+  #   
+  #   %Combat{combat | cooldowns: updated_cooldowns}
+  # end
   
-  defp update_combat_state(%Combat{} = combat, %Health{current: hp, maximum: max_hp}) do
-    # Determine combat state based on health percentage
-    health_percent = hp / max_hp
-    
-    new_state = cond do
-      hp <= 0 -> :dead
-      health_percent < 0.25 -> :critical
-      health_percent < 0.5 -> :injured
-      true -> :healthy
-    end
-    
-    %Combat{combat | state: new_state}
-  end
+  # TODO: Enable when combat state tracking is implemented
+  # defp update_combat_state(%Combat{} = combat, %Health{current: hp, maximum: max_hp}) do
+  #   # Determine combat state based on health percentage
+  #   health_percent = hp / max_hp
+  #   
+  #   new_state = cond do
+  #     hp <= 0 -> :dead
+  #     health_percent < 0.25 -> :critical
+  #     health_percent < 0.5 -> :injured
+  #     true -> :healthy
+  #   end
+  #   
+  #   %Combat{combat | state: new_state}
+  # end
   
   defp get_defense_for_type(%Combat{} = combat, damage_type) do
     case damage_type do
@@ -403,16 +406,17 @@ defmodule AshGameServer.Systems.CombatSystem do
     end
   end
   
-  defp update_status_effect(entity_id, effect_id, updated_effect) do
-    case get_component(entity_id, StatusEffect) do
-      {:ok, status_effect} ->
-        updated_status = StatusEffect.update_effect(status_effect, effect_id, updated_effect)
-        update_component(entity_id, StatusEffect, updated_status)
-      
-      _ ->
-        :error
-    end
-  end
+  # TODO: Enable when StatusEffect module is implemented
+  # defp update_status_effect(entity_id, effect_id, updated_effect) do
+  #   case get_component(entity_id, StatusEffect) do
+  #     {:ok, status_effect} ->
+  #       updated_status = StatusEffect.update_effect(status_effect, effect_id, updated_effect)
+  #       update_component(entity_id, StatusEffect, updated_status)
+  #     
+  #     _ ->
+  #       :error
+  #   end
+  # end
   
   defp process_ability_queue(_entity_id, %Combat{ability_queue: []} = combat, _state) do
     combat
