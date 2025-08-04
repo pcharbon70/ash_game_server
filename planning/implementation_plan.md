@@ -322,19 +322,19 @@ This section implements the fundamental Entity-Component-System architecture wit
   - [ ] Create Lag compensation (future)
   - [ ] Add prediction support (future)
 
-- [ ] **1.2.4.4 Add Rendering Components**
-  - [ ] Create Sprite component
-  - [ ] Add Animation component
-  - [ ] Implement Visibility component
-  - [ ] Create LOD component
-  - [ ] Add culling support
+- [x] **1.2.4.4 Add Rendering Components**
+  - [x] Create Sprite component
+  - [x] Add Animation component
+  - [x] Implement Visibility component
+  - [x] Create LOD component
+  - [x] Add culling support (in Visibility)
 
-- [ ] **1.2.4.5 Build AI Components**
-  - [ ] Create AIController component
-  - [ ] Add Behavior component
-  - [ ] Implement Perception component
-  - [ ] Create Navigation component
-  - [ ] Add decision making
+- [x] **1.2.4.5 Build AI Components**
+  - [x] Create AIController component
+  - [x] Add Behavior component
+  - [x] Implement Perception component
+  - [ ] Create Navigation component (future)
+  - [x] Add decision making (in Behavior)
 
 #### 1.2.5 Core Game Systems
 - [ ] **1.2.5.1 Create Movement System**
