@@ -300,16 +300,16 @@ This section implements the fundamental Entity-Component-System architecture wit
   - [x] Create optimization hints
   - [x] Implement profiling
 
-#### 1.2.4 Core Game Components
-- [ ] **1.2.4.1 Create Transform Components**
-  - [ ] Implement Position component
-  - [ ] Add Rotation component
-  - [ ] Create Scale component
-  - [ ] Implement Velocity component
+#### 1.2.4 Core Game Components (Partial)
+- [x] **1.2.4.1 Create Transform Components**
+  - [x] Implement Position component
+  - [x] Add Rotation component
+  - [x] Create Scale component
+  - [x] Implement Velocity component
   - [ ] Add physics integration
 
-- [ ] **1.2.4.2 Build Gameplay Components**
-  - [ ] Create Health component
+- [~] **1.2.4.2 Build Gameplay Components**
+  - [x] Create Health component
   - [ ] Add Inventory component
   - [ ] Implement Stats component
   - [ ] Create Abilities component
