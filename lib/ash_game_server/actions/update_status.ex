@@ -15,7 +15,7 @@ defmodule AshGameServer.Actions.UpdateStatus do
   def run(params, _context) do
     with {:ok, _} <- validate_transition(params.current_status, params.new_status),
          {:ok, _update_result} <- apply_status_update(params) do
-      
+
       result = %{
         previous_status: params.current_status,
         new_status: params.new_status,
@@ -23,7 +23,7 @@ defmodule AshGameServer.Actions.UpdateStatus do
         metadata: params.metadata,
         success: true
       }
-      
+
       {:ok, result}
     else
       {:error, reason} -> {:error, reason}
@@ -39,9 +39,9 @@ defmodule AshGameServer.Actions.UpdateStatus do
       :processing => [:idle, :active, :stopped],
       :stopped => [:idle]
     }
-    
+
     allowed = Map.get(valid_transitions, from, [])
-    
+
     if to in allowed do
       {:ok, :valid_transition}
     else
@@ -52,13 +52,13 @@ defmodule AshGameServer.Actions.UpdateStatus do
   defp apply_status_update(params) do
     # Here we could add additional logic for status changes
     # like logging, notifications, cleanup, etc.
-    
+
     update_info = %{
       transition: "#{params.current_status} -> #{params.new_status}",
       applied_at: DateTime.utc_now(),
       metadata: params.metadata
     }
-    
+
     {:ok, update_info}
   end
 end

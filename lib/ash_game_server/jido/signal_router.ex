@@ -1,7 +1,7 @@
 defmodule AshGameServer.Jido.SignalRouter do
   @moduledoc """
   CloudEvents-compliant signal router for agent communication.
-  
+
   This module handles:
   - Signal routing and transformation
   - CloudEvents format compliance
@@ -81,15 +81,15 @@ defmodule AshGameServer.Jido.SignalRouter do
     case validate_signal(signal) do
       {:ok, validated_signal} ->
         route_validated_signal(validated_signal)
-        
+
         new_state = %{
-          state | 
+          state |
           signal_count: state.signal_count + 1,
           last_signal_time: DateTime.utc_now()
         }
-        
+
         {:noreply, new_state}
-      
+
       {:error, reason} ->
         Logger.warning("Invalid signal format: #{inspect(reason)}")
         {:noreply, state}
@@ -100,12 +100,12 @@ defmodule AshGameServer.Jido.SignalRouter do
   def handle_call({:subscribe, signal_type, subscriber_pid}, _from, state) do
     subscriptions = Map.get(state.subscriptions, signal_type, MapSet.new())
     new_subscriptions = MapSet.put(subscriptions, subscriber_pid)
-    
+
     new_state = %{
-      state | 
+      state |
       subscriptions: Map.put(state.subscriptions, signal_type, new_subscriptions)
     }
-    
+
     Logger.debug("Subscribed #{inspect(subscriber_pid)} to #{signal_type}")
     {:reply, :ok, new_state}
   end
@@ -114,12 +114,12 @@ defmodule AshGameServer.Jido.SignalRouter do
   def handle_call({:unsubscribe, signal_type, subscriber_pid}, _from, state) do
     subscriptions = Map.get(state.subscriptions, signal_type, MapSet.new())
     new_subscriptions = MapSet.delete(subscriptions, subscriber_pid)
-    
+
     new_state = %{
-      state | 
+      state |
       subscriptions: Map.put(state.subscriptions, signal_type, new_subscriptions)
     }
-    
+
     Logger.debug("Unsubscribed #{inspect(subscriber_pid)} from #{signal_type}")
     {:reply, :ok, new_state}
   end
@@ -135,7 +135,7 @@ defmodule AshGameServer.Jido.SignalRouter do
       },
       %{last_signal_time: state.last_signal_time}
     )
-    
+
     # Schedule next metrics emission
     Process.send_after(self(), :signal_metrics, 10_000)
     {:noreply, state}
@@ -146,16 +146,16 @@ defmodule AshGameServer.Jido.SignalRouter do
   defp route_validated_signal(signal) do
     signal_type = String.to_atom(signal.type)
     topic = signal_topic(signal_type)
-    
+
     # Broadcast via Phoenix PubSub
     Phoenix.PubSub.broadcast(AshGameServer.PubSub, topic, {:signal, signal})
-    
+
     Logger.debug("Routed signal: #{signal.type} (#{signal.id})")
   end
 
   defp validate_signal(signal) when is_map(signal) do
     required_fields = [:specversion, :type, :source, :id]
-    
+
     case Enum.all?(required_fields, &Map.has_key?(signal, &1)) do
       true -> {:ok, signal}
       false -> {:error, :missing_required_fields}

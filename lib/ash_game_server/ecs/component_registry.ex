@@ -1,7 +1,7 @@
 defmodule AshGameServer.ECS.ComponentRegistry do
   @moduledoc """
   Registry for managing component types and their metadata.
-  
+
   Provides centralized management of:
   - Component type registration
   - Metadata lookup
@@ -10,20 +10,20 @@ defmodule AshGameServer.ECS.ComponentRegistry do
   - Migration coordination
   """
   use GenServer
-  
+
   # alias AshGameServer.ECS.ComponentBehaviour  # TODO: Will be used for type checking
-  
+
   @type component_module :: module()
   @type component_name :: atom()
-  
+
   @registry_table :component_registry
-  
+
   # Client API
-  
+
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
-  
+
   @doc """
   Registers a component module.
   """
@@ -31,7 +31,7 @@ defmodule AshGameServer.ECS.ComponentRegistry do
   def register_component(module) do
     GenServer.call(__MODULE__, {:register, module})
   end
-  
+
   @doc """
   Gets component metadata by name.
   """
@@ -42,7 +42,7 @@ defmodule AshGameServer.ECS.ComponentRegistry do
       [] -> {:error, :not_found}
     end
   end
-  
+
   @doc """
   Lists all registered components.
   """
@@ -51,7 +51,7 @@ defmodule AshGameServer.ECS.ComponentRegistry do
     :ets.tab2list(@registry_table)
     |> Enum.map(fn {_name, metadata} -> metadata end)
   end
-  
+
   @doc """
   Gets components by criteria.
   """
@@ -64,7 +64,7 @@ defmodule AshGameServer.ECS.ComponentRegistry do
       end)
     end)
   end
-  
+
   @doc """
   Validates component data against registered schema.
   """
@@ -75,7 +75,7 @@ defmodule AshGameServer.ECS.ComponentRegistry do
       module.validate(data)
     end
   end
-  
+
   @doc """
   Gets the current version of a component.
   """
@@ -86,7 +86,7 @@ defmodule AshGameServer.ECS.ComponentRegistry do
       error -> error
     end
   end
-  
+
   @doc """
   Checks if a component supports migration from one version to another.
   """
@@ -99,17 +99,17 @@ defmodule AshGameServer.ECS.ComponentRegistry do
       _ -> false
     end
   end
-  
+
   @doc """
   Migrates component data to the latest version.
   """
-  @spec migrate_component(component_name(), map(), non_neg_integer()) :: 
+  @spec migrate_component(component_name(), map(), non_neg_integer()) ::
     {:ok, map()} | {:error, term()}
   def migrate_component(name, data, from_version) do
     with {:ok, metadata} <- get_component(name),
          to_version <- Map.get(metadata, :version),
          module <- Map.get(metadata, :module) do
-      
+
       if from_version == to_version do
         {:ok, data}
       else
@@ -117,25 +117,25 @@ defmodule AshGameServer.ECS.ComponentRegistry do
       end
     end
   end
-  
+
   # Server Callbacks
-  
+
   @impl true
   def init(_opts) do
     :ets.new(@registry_table, [:named_table, :public, :set, read_concurrency: true])
     {:ok, %{}}
   end
-  
+
   @impl true
   def handle_call({:register, module}, _from, state) do
     try do
       metadata = module.metadata()
-      
+
       # Validate the module implements the behaviour
       if function_exported?(module, :metadata, 0) do
         enhanced_metadata = Map.put(metadata, :module, module)
         name = Map.get(metadata, :name)
-        
+
         :ets.insert(@registry_table, {name, enhanced_metadata})
         {:reply, :ok, state}
       else
@@ -146,7 +146,7 @@ defmodule AshGameServer.ECS.ComponentRegistry do
         {:reply, {:error, {:registration_failed, error}}, state}
     end
   end
-  
+
   @impl true
   def handle_call(_request, _from, state) do
     {:reply, {:error, :unknown_request}, state}

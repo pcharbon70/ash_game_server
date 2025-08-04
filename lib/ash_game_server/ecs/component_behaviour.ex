@@ -1,7 +1,7 @@
 defmodule AshGameServer.ECS.ComponentBehaviour do
   @moduledoc """
   Behaviour for defining ECS components with metadata, validation, and lifecycle hooks.
-  
+
   This module provides the foundation for creating robust components with:
   - Type safety and validation
   - Serialization/deserialization
@@ -63,7 +63,7 @@ defmodule AshGameServer.ECS.ComponentBehaviour do
   @doc """
   Migrates component data from an older version.
   """
-  @callback migrate(component_data(), component_version(), component_version()) :: 
+  @callback migrate(component_data(), component_version(), component_version()) ::
     {:ok, component_data()} | {:error, term()}
 
   @optional_callbacks [
@@ -79,10 +79,10 @@ defmodule AshGameServer.ECS.ComponentBehaviour do
   defmacro __using__(opts) do
     quote location: :keep do
       @behaviour AshGameServer.ECS.ComponentBehaviour
-      
+
       @component_opts unquote(opts)
       @before_compile AshGameServer.ECS.ComponentBehaviour
-      
+
       # Default implementations
       def validate(_data), do: :ok
       def serialize(data), do: :erlang.term_to_binary(data)
@@ -91,7 +91,7 @@ defmodule AshGameServer.ECS.ComponentBehaviour do
       def on_update(_entity_id, _old_data, _new_data), do: :ok
       def on_delete(_entity_id, _data), do: :ok
       def migrate(data, _from_version, _to_version), do: {:ok, data}
-      
+
       defoverridable [
         validate: 1,
         serialize: 1,
@@ -108,7 +108,7 @@ defmodule AshGameServer.ECS.ComponentBehaviour do
     quote do
       def metadata do
         opts = @component_opts || []
-        
+
         %{
           name: __MODULE__ |> Module.split() |> List.last() |> Macro.underscore() |> String.to_atom(),
           version: Keyword.get(opts, :version, 1),

@@ -1,7 +1,7 @@
 defmodule AshGameServer.Jido do
   @moduledoc """
   Jido framework integration for the game server.
-  
+
   This module provides the foundation for autonomous agent systems
   within the game server, including supervision, registry, and signal routing.
   """

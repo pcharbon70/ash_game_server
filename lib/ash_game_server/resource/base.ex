@@ -1,7 +1,7 @@
 defmodule AshGameServer.Resource.Base do
   @moduledoc """
   Base resource module providing common patterns for all game resources.
-  
+
   This module provides:
   - UUID primary key
   - Timestamps (inserted_at, updated_at)
@@ -25,21 +25,21 @@ defmodule AshGameServer.Resource.Base do
       # Common attributes
       attributes do
         uuid_primary_key :id
-        
+
         # Timestamps
         create_timestamp :inserted_at
         update_timestamp :updated_at
-        
+
         # Soft delete
         attribute :deleted_at, :utc_datetime_usec,
           allow_nil?: true,
           public?: false
-        
+
         # Audit fields
         attribute :created_by_id, :uuid,
           allow_nil?: true,
           public?: false
-        
+
         attribute :updated_by_id, :uuid,
           allow_nil?: true,
           public?: false
@@ -48,34 +48,34 @@ defmodule AshGameServer.Resource.Base do
       # Common actions
       actions do
         defaults [:read]
-        
+
         create :base_create do
           accept :*
-          
+
           change set_context(:created_by_id)
         end
-        
+
         update :base_update do
           accept :*
-          
+
           change set_context(:updated_by_id)
         end
-        
+
         destroy :base_destroy do
           soft? true
-          
+
           change set_attribute(:deleted_at, &DateTime.utc_now/0)
         end
-        
+
         # Hard delete action
         destroy :hard_delete do
           soft? false
         end
-        
+
         # Restore soft-deleted records
         update :restore do
           accept []
-          
+
           change set_attribute(:deleted_at, nil)
         end
       end
@@ -91,7 +91,7 @@ defmodule AshGameServer.Resource.Base do
       pub_sub do
         module AshGameServer.PubSubHelper
         prefix unquote(opts[:pub_sub_prefix]) || (__MODULE__ |> Module.split() |> List.last() |> Macro.underscore())
-        
+
         publish_all :create, "created"
         publish_all :update, "updated"
         publish_all :destroy, "deleted"

@@ -1,11 +1,11 @@
 defmodule AshGameServer.ECS.EntityExtension do
   @moduledoc """
   Spark DSL extension for defining ECS entities and archetypes.
-  
+
   Entities are containers for components. Archetypes are predefined
   entity templates that specify which components an entity should have.
   """
-  
+
   # Define component reference entity first (used by other entities)
   @component_ref_entity %Spark.Dsl.Entity{
     name: :with_component,
@@ -34,13 +34,13 @@ defmodule AshGameServer.ECS.EntityExtension do
       ]
     ]
   }
-  
+
   # Define archetype entity
   @archetype_entity %Spark.Dsl.Entity{
     name: :archetype,
     describe: """
     Defines an entity archetype (template).
-    
+
     Archetypes are reusable entity templates that specify a set of
     components and their initial values.
     """,
@@ -87,13 +87,13 @@ defmodule AshGameServer.ECS.EntityExtension do
       components: [@component_ref_entity]
     ]
   }
-  
+
   # Define entity template entity
   @entity_template_entity %Spark.Dsl.Entity{
     name: :entity,
     describe: """
     Defines a specific entity instance.
-    
+
     Entities are specific game objects with predefined components
     and initial values.
     """,
@@ -128,13 +128,13 @@ defmodule AshGameServer.ECS.EntityExtension do
       components: [@component_ref_entity]
     ]
   }
-  
+
   # Define entities section
   @entity_section %Spark.Dsl.Section{
     name: :entities,
     describe: """
     Define entities and archetypes for the ECS system.
-    
+
     Entities are game objects composed of components. Archetypes are
     reusable templates for creating similar entities.
     """,
@@ -146,12 +146,12 @@ defmodule AshGameServer.ECS.EntityExtension do
           with_component :velocity
           with_component :fuel, max: 100
         end
-        
+
         archetype :car do
           extends :vehicle
           with_component :wheels, count: 4
         end
-        
+
         entity :player_car do
           from_archetype :car
           with_component :owner, id: nil
@@ -172,7 +172,7 @@ defmodule AshGameServer.ECS.EntityExtension do
       ]
     ]
   }
-  
+
   # Use Spark.Dsl.Extension with sections and transformers defined inline
   use Spark.Dsl.Extension,
     sections: [@entity_section],
@@ -180,7 +180,7 @@ defmodule AshGameServer.ECS.EntityExtension do
       AshGameServer.ECS.Transformers.ValidateEntities,
       AshGameServer.ECS.Transformers.ResolveArchetypes
     ]
-  
+
   @doc """
   Get all defined archetypes for a module.
   """
@@ -189,7 +189,7 @@ defmodule AshGameServer.ECS.EntityExtension do
     |> Spark.Dsl.Extension.get_entities([:entities])
     |> Enum.filter(&(&1.__struct__ == AshGameServer.ECS.Archetype))
   end
-  
+
   @doc """
   Get all defined entity templates for a module.
   """
@@ -198,7 +198,7 @@ defmodule AshGameServer.ECS.EntityExtension do
     |> Spark.Dsl.Extension.get_entities([:entities])
     |> Enum.filter(&(&1.__struct__ == AshGameServer.ECS.EntityTemplate))
   end
-  
+
   @doc """
   Get a specific archetype by name.
   """
@@ -207,7 +207,7 @@ defmodule AshGameServer.ECS.EntityExtension do
     |> archetypes()
     |> Enum.find(&(&1.name == name))
   end
-  
+
   @doc """
   Get a specific entity template by name.
   """

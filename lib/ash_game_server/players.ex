@@ -1,7 +1,7 @@
 defmodule AshGameServer.Players do
   @moduledoc """
   Players domain managing player-related entities.
-  
+
   This domain handles:
   - Player profiles
   - Player statistics

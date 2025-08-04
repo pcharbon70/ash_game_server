@@ -1,7 +1,7 @@
 defmodule AshGameServer.ECS.EntityArchetype do
   @moduledoc """
   Entity Archetype system for the ECS architecture.
-  
+
   Provides comprehensive archetype management with:
   - Archetype definitions and component templates
   - Entity spawning from archetypes
@@ -20,7 +20,7 @@ defmodule AshGameServer.ECS.EntityArchetype do
     required: boolean(),
     variations: map()
   }
-  
+
   @type archetype_definition :: %{
     name: archetype_name(),
     description: String.t(),
@@ -87,7 +87,7 @@ defmodule AshGameServer.ECS.EntityArchetype do
   @doc """
   Spawn multiple entities from an archetype efficiently.
   """
-  @spec spawn_entities(archetype_name(), non_neg_integer(), spawn_options()) :: 
+  @spec spawn_entities(archetype_name(), non_neg_integer(), spawn_options()) ::
     {:ok, [Entity.entity_id()]} | {:error, term()}
   def spawn_entities(archetype_name, count, opts \\ %{}) do
     GenServer.call(__MODULE__, {:spawn_entities, archetype_name, count, opts})
@@ -179,7 +179,7 @@ defmodule AshGameServer.ECS.EntityArchetype do
     case validate_archetype(archetype_def) do
       :ok ->
         :ets.insert(@archetypes_table, {archetype_def.name, archetype_def})
-        
+
         # Initialize stats
         stats = %{
           spawn_count: 0,
@@ -188,12 +188,12 @@ defmodule AshGameServer.ECS.EntityArchetype do
           registered_at: DateTime.utc_now()
         }
         :ets.insert(@archetype_stats_table, {archetype_def.name, stats})
-        
+
         # Clear component cache for this archetype
         updated_state = %{state | component_cache: Map.delete(state.component_cache, archetype_def.name)}
-        
+
         {:reply, :ok, updated_state}
-      
+
       error ->
         {:reply, error, state}
     end
@@ -202,26 +202,26 @@ defmodule AshGameServer.ECS.EntityArchetype do
   @impl true
   def handle_call({:spawn_entity, archetype_name, opts}, _from, state) do
     start_time = System.monotonic_time()
-    
+
     result = do_spawn_entity(archetype_name, opts, state)
-    
+
     # Update statistics
     duration = System.monotonic_time() - start_time
     update_spawn_stats(archetype_name, 1, duration)
-    
+
     {:reply, result, state}
   end
 
   @impl true
   def handle_call({:spawn_entities, archetype_name, count, opts}, _from, state) do
     start_time = System.monotonic_time()
-    
+
     result = do_spawn_entities(archetype_name, count, opts, state)
-    
+
     # Update statistics
     duration = System.monotonic_time() - start_time
     update_spawn_stats(archetype_name, count, duration)
-    
+
     {:reply, result, state}
   end
 
@@ -230,23 +230,23 @@ defmodule AshGameServer.ECS.EntityArchetype do
     case :ets.lookup(@archetypes_table, archetype_name) do
       [{^archetype_name, current_def}] ->
         updated_def = Map.merge(current_def, updates)
-        
+
         case validate_archetype(updated_def) do
           :ok ->
             :ets.insert(@archetypes_table, {archetype_name, updated_def})
-            
+
             # Clear caches
-            updated_state = %{state | 
+            updated_state = %{state |
               component_cache: Map.delete(state.component_cache, archetype_name),
               validation_cache: Map.delete(state.validation_cache, archetype_name)
             }
-            
+
             {:reply, :ok, updated_state}
-          
+
           error ->
             {:reply, error, state}
         end
-      
+
       [] ->
         {:reply, {:error, :archetype_not_found}, state}
     end
@@ -260,7 +260,7 @@ defmodule AshGameServer.ECS.EntityArchetype do
         updated_cache = Map.put(state.component_cache, archetype_name, result)
         updated_state = %{state | component_cache: updated_cache}
         {:reply, result, updated_state}
-      
+
       cached_result ->
         {:reply, cached_result, state}
     end
@@ -272,14 +272,14 @@ defmodule AshGameServer.ECS.EntityArchetype do
       [{^archetype_name, archetype_def}] ->
         updated_variations = Map.put(archetype_def.variations, variation_name, variation_data)
         updated_def = %{archetype_def | variations: updated_variations}
-        
+
         :ets.insert(@archetypes_table, {archetype_name, updated_def})
-        
+
         # Clear component cache
         updated_state = %{state | component_cache: Map.delete(state.component_cache, archetype_name)}
-        
+
         {:reply, :ok, updated_state}
-      
+
       [] ->
         {:reply, {:error, :archetype_not_found}, state}
     end
@@ -289,13 +289,13 @@ defmodule AshGameServer.ECS.EntityArchetype do
   def handle_cast({:remove_archetype, archetype_name}, state) do
     :ets.delete(@archetypes_table, archetype_name)
     :ets.delete(@archetype_stats_table, archetype_name)
-    
+
     # Clear caches
     updated_state = %{state |
       component_cache: Map.delete(state.component_cache, archetype_name),
       validation_cache: Map.delete(state.validation_cache, archetype_name)
     }
-    
+
     {:noreply, updated_state}
   end
 
@@ -311,12 +311,12 @@ defmodule AshGameServer.ECS.EntityArchetype do
   defp do_spawn_entities(archetype_name, count, opts, state) do
     with {:ok, complete_components} <- get_complete_components_cached(archetype_name, state),
          {:ok, final_components} <- apply_variations_and_overrides(complete_components, opts) do
-      
+
       entity_ids = for _ <- 1..count do
         {:ok, entity_id} = create_entity_with_components(archetype_name, final_components, opts)
         entity_id
       end
-      
+
       {:ok, entity_ids}
     end
   end
@@ -333,7 +333,7 @@ defmodule AshGameServer.ECS.EntityArchetype do
       {:ok, archetype_def} ->
         components = collect_inherited_components(archetype_def, [])
         {:ok, components}
-      
+
       error -> error
     end
   end
@@ -348,14 +348,14 @@ defmodule AshGameServer.ECS.EntityArchetype do
       merge_component_templates(base_components, archetype_def.components)
     end
   end
-  
+
   defp get_parent_components(archetype_def, visited) do
     case archetype_def.parent do
       nil -> []
       parent_name -> fetch_parent_components(parent_name, archetype_def.name, visited)
     end
   end
-  
+
   defp fetch_parent_components(parent_name, current_name, visited) do
     case get_archetype(parent_name) do
       {:ok, parent_def} ->
@@ -367,14 +367,14 @@ defmodule AshGameServer.ECS.EntityArchetype do
   defp merge_component_templates(base_components, override_components) do
     base_map = Enum.into(base_components, %{}, fn comp -> {comp.component_name, comp} end)
     override_map = Enum.into(override_components, %{}, fn comp -> {comp.component_name, comp} end)
-    
+
     Map.merge(base_map, override_map) |> Map.values()
   end
 
   defp apply_variations_and_overrides(components, opts) do
     variation = Map.get(opts, :variation)
     overrides = Map.get(opts, :component_overrides, %{})
-    
+
     updated_components = Enum.map(components, fn component ->
       # Apply variation if specified
       varied_data = case variation do
@@ -382,16 +382,16 @@ defmodule AshGameServer.ECS.EntityArchetype do
         var_name ->
           Map.get(component.variations, var_name, component.default_data)
       end
-      
+
       # Apply overrides
       final_data = case Map.get(overrides, component.component_name) do
         nil -> varied_data
         override_data -> Map.merge(varied_data, override_data)
       end
-      
+
       %{component | default_data: final_data}
     end)
-    
+
     {:ok, updated_components}
   end
 
@@ -402,20 +402,20 @@ defmodule AshGameServer.ECS.EntityArchetype do
       tags: Map.get(opts, :tags, []),
       parent_id: Map.get(opts, :parent_id)
     ]
-    
+
     case Entity.create(entity_opts) do
       {:ok, entity} ->
         # Add all components
         Enum.each(components, fn component ->
           AshGameServer.Storage.add_component(
-            entity.id, 
-            component.component_name, 
+            entity.id,
+            component.component_name,
             component.default_data
           )
         end)
-        
+
         {:ok, entity.id}
-      
+
       error -> error
     end
   end
@@ -429,7 +429,7 @@ defmodule AshGameServer.ECS.EntityArchetype do
           total_spawn_time: stats.total_spawn_time + duration
         }
         :ets.insert(@archetype_stats_table, {archetype_name, updated_stats})
-      
+
       [] ->
         # Initialize stats if not present
         stats = %{
@@ -444,11 +444,11 @@ defmodule AshGameServer.ECS.EntityArchetype do
 
   defp validate_required_fields(archetype_def) do
     required_fields = [:name, :components]
-    
+
     missing_fields = Enum.filter(required_fields, fn field ->
       not Map.has_key?(archetype_def, field)
     end)
-    
+
     if missing_fields == [] do
       :ok
     else
@@ -458,7 +458,7 @@ defmodule AshGameServer.ECS.EntityArchetype do
 
   defp validate_components(components) when is_list(components) do
     invalid_components = Enum.reject(components, &valid_component_template?/1)
-    
+
     if invalid_components == [] do
       :ok
     else
@@ -469,7 +469,7 @@ defmodule AshGameServer.ECS.EntityArchetype do
   defp validate_components(_), do: {:error, :components_must_be_list}
 
   defp valid_component_template?(component) do
-    Map.has_key?(component, :component_name) and 
+    Map.has_key?(component, :component_name) and
     Map.has_key?(component, :default_data) and
     is_atom(component.component_name) and
     is_map(component.default_data)
@@ -480,10 +480,10 @@ defmodule AshGameServer.ECS.EntityArchetype do
       nil -> :ok
       parent_name ->
         case get_archetype(parent_name) do
-          {:ok, _} -> 
+          {:ok, _} ->
             # Check for circular inheritance
             check_circular_inheritance(archetype_def.name, parent_name, [])
-          {:error, :not_found} -> 
+          {:error, :not_found} ->
             {:error, {:parent_not_found, parent_name}}
         end
     end
@@ -496,7 +496,7 @@ defmodule AshGameServer.ECS.EntityArchetype do
       check_parent_hierarchy(current_name, parent_name, visited)
     end
   end
-  
+
   defp check_parent_hierarchy(current_name, parent_name, visited) do
     case get_archetype(parent_name) do
       {:ok, parent_def} ->
@@ -504,7 +504,7 @@ defmodule AshGameServer.ECS.EntityArchetype do
       _ -> :ok
     end
   end
-  
+
   defp check_grandparent(current_name, parent_def, parent_name, visited) do
     case parent_def.parent do
       nil -> :ok
@@ -569,7 +569,7 @@ defmodule AshGameServer.ECS.EntityArchetype do
       }
     }
 
-    # NPC archetype 
+    # NPC archetype
     npc_archetype = %{
       name: :npc,
       description: "Base NPC entity with AI and interaction components",

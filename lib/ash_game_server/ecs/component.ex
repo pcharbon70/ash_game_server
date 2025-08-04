@@ -2,7 +2,7 @@ defmodule AshGameServer.ECS.Component do
   @moduledoc """
   Struct representing an ECS component definition.
   """
-  
+
   defstruct [
     :name,
     :description,
@@ -11,7 +11,7 @@ defmodule AshGameServer.ECS.Component do
     attributes: [],
     validations: []
   ]
-  
+
   @type t :: %__MODULE__{
     name: atom(),
     description: String.t() | nil,
@@ -26,7 +26,7 @@ defmodule AshGameServer.ECS.Component.Attribute do
   @moduledoc """
   Struct representing a component attribute.
   """
-  
+
   defstruct [
     :name,
     :type,
@@ -34,7 +34,7 @@ defmodule AshGameServer.ECS.Component.Attribute do
     :required,
     :constraints
   ]
-  
+
   @type t :: %__MODULE__{
     name: atom(),
     type: atom(),
@@ -48,13 +48,13 @@ defmodule AshGameServer.ECS.Component.Validation do
   @moduledoc """
   Struct representing a component validation rule.
   """
-  
+
   defstruct [
     :name,
     :message,
     :check
   ]
-  
+
   @type t :: %__MODULE__{
     name: atom(),
     message: String.t() | nil,
@@ -66,6 +66,6 @@ defmodule AshGameServer.ECS.Component.Check do
   @moduledoc """
   Behavior for component validation checks.
   """
-  
+
   @callback validate(component_data :: map()) :: :ok | {:error, String.t()}
 end

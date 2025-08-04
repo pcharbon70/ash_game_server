@@ -1,11 +1,11 @@
 defmodule AshGameServer.ECS.ComponentExtension do
   @moduledoc """
   Spark DSL extension for defining ECS components and their attributes.
-  
+
   Components are data containers that can be attached to entities.
   They define the structure and validation rules for game object attributes.
   """
-  
+
   # Define attribute entity first (used by component entity)
   @attribute_entity %Spark.Dsl.Entity{
     name: :attribute,
@@ -47,7 +47,7 @@ defmodule AshGameServer.ECS.ComponentExtension do
       ]
     ]
   }
-  
+
   # Define validation entity
   @validation_entity %Spark.Dsl.Entity{
     name: :validate,
@@ -78,13 +78,13 @@ defmodule AshGameServer.ECS.ComponentExtension do
       ]
     ]
   }
-  
+
   # Define component entity
   @component_entity %Spark.Dsl.Entity{
     name: :component,
     describe: """
     Defines a component that can be attached to entities.
-    
+
     Components contain attributes that define the data structure
     and validation rules for a specific aspect of game objects.
     """,
@@ -93,7 +93,7 @@ defmodule AshGameServer.ECS.ComponentExtension do
       component :position do
         attribute :x, :float, default: 0.0
         attribute :y, :float, default: 0.0
-        
+
         validate :bounds_check do
           validate_numericality :x, greater_than_or_equal_to: -1000.0
           validate_numericality :x, less_than_or_equal_to: 1000.0
@@ -104,7 +104,7 @@ defmodule AshGameServer.ECS.ComponentExtension do
       component :inventory do
         attribute :items, {:array, :map}, default: []
         attribute :capacity, :integer, default: 20
-        
+
         validate :capacity_limit do
           validate_numericality :capacity, less_than_or_equal_to: 100
         end
@@ -153,13 +153,13 @@ defmodule AshGameServer.ECS.ComponentExtension do
       validations: [@validation_entity]
     ]
   }
-  
+
   # Define the components section structure
   @component_section %Spark.Dsl.Section{
     name: :components,
     describe: """
     Define components for the ECS system.
-    
+
     Components are data containers that can be attached to entities.
     Each component defines a specific aspect of a game object,
     such as position, health, or inventory.
@@ -172,11 +172,11 @@ defmodule AshGameServer.ECS.ComponentExtension do
           attribute :y, :float, default: 0.0
           attribute :z, :float, default: 0.0
         end
-        
+
         component :health do
           attribute :current, :integer, default: 100
           attribute :max, :integer, default: 100
-          
+
           validate :current_not_negative do
             validate_numericality :current, greater_than_or_equal_to: 0
           end
@@ -193,21 +193,21 @@ defmodule AshGameServer.ECS.ComponentExtension do
       ]
     ]
   }
-  
+
   # Use Spark.Dsl.Extension with sections and transformers defined inline
   use Spark.Dsl.Extension,
     sections: [@component_section],
     transformers: [
       AshGameServer.ECS.Transformers.ValidateComponents
     ]
-  
+
   @doc """
   Get all defined components for a module.
   """
   def get_components(module) do
     Spark.Dsl.Extension.get_entities(module, [:components])
   end
-  
+
   @doc """
   Get a specific component by name.
   """
@@ -216,7 +216,7 @@ defmodule AshGameServer.ECS.ComponentExtension do
     |> get_components()
     |> Enum.find(&(&1.name == name))
   end
-  
+
   @doc """
   Get all attributes for a component.
   """
@@ -226,7 +226,7 @@ defmodule AshGameServer.ECS.ComponentExtension do
       component -> Map.get(component, :attributes, [])
     end
   end
-  
+
   @doc """
   Check if a component exists.
   """

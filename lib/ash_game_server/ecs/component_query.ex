@@ -1,7 +1,7 @@
 defmodule AshGameServer.ECS.ComponentQuery do
   @moduledoc """
   Fluent query DSL for component filtering, joining, and aggregation.
-  
+
   Provides a powerful and efficient way to query components with:
   - Fluent query builder interface
   - Efficient filter operations
@@ -11,7 +11,8 @@ defmodule AshGameServer.ECS.ComponentQuery do
   - Query optimization and planning
   """
 
-  alias AshGameServer.ECS.{EnhancedStorage, ComponentRegistry}
+  alias AshGameServer.ECS.EnhancedStorage
+  alias AshGameServer.ECS.ComponentRegistry
   alias AshGameServer.Storage
 
   @type entity_id :: term()
@@ -89,10 +90,10 @@ defmodule AshGameServer.ECS.ComponentQuery do
   """
   @spec where(t(), keyword() | map()) :: t()
   def where(%__MODULE__{} = query, conditions) when is_list(conditions) or is_map(conditions) do
-    new_conditions = 
+    new_conditions =
       conditions
       |> Enum.map(fn {field, value} -> {field, :eq, value} end)
-    
+
     %{query | where: new_conditions ++ query.where}
   end
 
@@ -199,7 +200,7 @@ defmodule AshGameServer.ECS.ComponentQuery do
   @spec count(t()) :: {:ok, non_neg_integer()} | {:error, term()}
   def count(%__MODULE__{} = query) do
     optimized_query = %{query | select: [{:count, :*}]}
-    
+
     case execute_query(optimized_query) do
       {:ok, [%{count: count}]} -> {:ok, count}
       {:ok, results} -> {:ok, length(results)}
@@ -226,7 +227,7 @@ defmodule AshGameServer.ECS.ComponentQuery do
   @spec aggregate(t(), aggregate_op(), atom()) :: {:ok, term()} | {:error, term()}
   def aggregate(%__MODULE__{} = query, op, field) do
     optimized_query = %{query | select: [{op, field}]}
-    
+
     case execute_query(optimized_query) do
       {:ok, [result]} -> {:ok, Map.get(result, op)}
       error -> error
@@ -280,10 +281,10 @@ defmodule AshGameServer.ECS.ComponentQuery do
     try do
       # Create execution plan
       plan = create_execution_plan(query)
-      
+
       # Execute the plan
       result = execute_plan(plan)
-      
+
       {:ok, result}
     rescue
       error ->
@@ -308,22 +309,22 @@ defmodule AshGameServer.ECS.ComponentQuery do
   defp execute_plan(plan) do
     # Start with base entities
     entities = get_base_entities(plan.base_component)
-    
+
     # Apply filters
     filtered = apply_filters(entities, plan.base_component, plan.filters)
-    
+
     # Apply joins
     joined = apply_joins(filtered, plan.joins)
-    
+
     # Apply aggregations or projections
     if plan.aggregations != [] do
       apply_aggregations(joined, plan.aggregations)
     else
       results = apply_projections(joined, plan.projections)
-      
+
       # Apply ordering
       ordered = apply_ordering(results, plan.ordering)
-      
+
       # Apply limit/offset
       apply_pagination(ordered, plan.limit, plan.offset)
     end
@@ -435,10 +436,10 @@ defmodule AshGameServer.ECS.ComponentQuery do
 
   defp plan_optimizations(query) do
     optimizations = []
-    
+
     # Add index optimization if using indexed fields
     optimizations = maybe_add_index_optimization(query, optimizations)
-    
+
     # Add other optimizations
     optimizations
   end
@@ -448,11 +449,11 @@ defmodule AshGameServer.ECS.ComponentQuery do
     case ComponentRegistry.get_component(query.from) do
       {:ok, metadata} ->
         indexes = Map.get(metadata, :indexes, [])
-        
+
         indexed_conditions = Enum.filter(query.where, fn {field, _op, _value} ->
           field in indexes
         end)
-        
+
         if indexed_conditions != [] do
           [:use_indexes | optimizations]
         else
@@ -463,7 +464,7 @@ defmodule AshGameServer.ECS.ComponentQuery do
   end
 
   # Stream support
-  
+
   defp prepare_stream(query) do
     plan = create_execution_plan(query)
     %{plan: plan, offset: 0, batch_size: 100}
@@ -471,7 +472,7 @@ defmodule AshGameServer.ECS.ComponentQuery do
 
   defp fetch_batch(%{plan: plan, offset: offset, batch_size: batch_size} = state) do
     batch_plan = %{plan | limit: batch_size, offset: offset}
-    
+
     case execute_plan(batch_plan) do
       [] -> {:halt, state}
       results -> {results, %{state | offset: offset + batch_size}}
@@ -481,7 +482,7 @@ defmodule AshGameServer.ECS.ComponentQuery do
   defp cleanup_stream(_state), do: :ok
 
   # Cache support (simplified)
-  
+
   defp get_cached_result(_cache_key) do
     # Implementation would check actual cache
     # Always return :miss for now since cache is not implemented

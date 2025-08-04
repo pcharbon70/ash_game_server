@@ -1,7 +1,7 @@
 defmodule AshGameServer.Players.Player do
   @moduledoc """
   Player resource representing a game player.
-  
+
   This resource tracks player information including:
   - Username and display name
   - Player status and statistics
@@ -17,61 +17,61 @@ defmodule AshGameServer.Players.Player do
     attribute :username, :string do
       allow_nil? false
       public? true
-      
+
       constraints [
         min_length: 3,
         max_length: 20,
         match: ~r/^[a-zA-Z0-9_]+$/
       ]
     end
-    
+
     attribute :display_name, :string do
       allow_nil? false
       public? true
       default fn -> "Player" end
-      
+
       constraints [
         min_length: 1,
         max_length: 30
       ]
     end
-    
+
     attribute :status, :atom do
       allow_nil? false
       public? true
       default :offline
-      
+
       constraints [
         one_of: [:online, :offline, :away, :in_game]
       ]
     end
-    
+
     attribute :level, :integer do
       allow_nil? false
       public? true
       default 1
-      
+
       constraints [
         min: 1,
         max: 100
       ]
     end
-    
+
     attribute :experience_points, :integer do
       allow_nil? false
       public? true
       default 0
-      
+
       constraints [
         min: 0
       ]
     end
-    
+
     attribute :last_seen_at, :utc_datetime_usec do
       allow_nil? true
       public? true
     end
-    
+
     # Game-specific stats stored as JSON
     attribute :stats, :map do
       allow_nil? false
@@ -93,28 +93,28 @@ defmodule AshGameServer.Players.Player do
     create :create do
       primary? true
       accept [:username, :display_name]
-      
+
       change set_attribute(:last_seen_at, &DateTime.utc_now/0)
     end
-    
+
     # Define primary update action
     update :update do
       primary? true
       accept :*
     end
-    
+
     # Define primary destroy action
     destroy :destroy do
       primary? true
       soft? true
       change set_attribute(:deleted_at, &DateTime.utc_now/0)
     end
-    
+
     # Action to update player status
     update :update_status do
       accept [:status]
       require_atomic? false
-      
+
       change fn changeset, _context ->
         if Ash.Changeset.get_attribute(changeset, :status) == :online do
           Ash.Changeset.force_change_attribute(changeset, :last_seen_at, DateTime.utc_now())
@@ -123,42 +123,42 @@ defmodule AshGameServer.Players.Player do
         end
       end
     end
-    
+
     # Action to add experience
     update :add_experience do
       require_atomic? false
-      
+
       argument :amount, :integer do
         allow_nil? false
         constraints min: 1
       end
-      
+
       change fn changeset, context ->
         current_exp = Ash.Changeset.get_attribute(changeset, :experience_points)
         current_level = Ash.Changeset.get_attribute(changeset, :level)
         new_exp = current_exp + context.arguments.amount
-        
+
         # Simple level calculation (every 1000 exp = 1 level)
         new_level = min(100, div(new_exp, 1000) + 1)
-        
+
         changeset
         |> Ash.Changeset.force_change_attribute(:experience_points, new_exp)
         |> Ash.Changeset.force_change_attribute(:level, new_level)
       end
     end
-    
+
     # Action to update stats
     update :update_stats do
       require_atomic? false
-      
+
       argument :stat_changes, :map do
         allow_nil? false
       end
-      
+
       change fn changeset, context ->
         current_stats = Ash.Changeset.get_attribute(changeset, :stats)
         new_stats = Map.merge(current_stats, context.arguments.stat_changes)
-        
+
         Ash.Changeset.force_change_attribute(changeset, :stats, new_stats)
       end
     end
