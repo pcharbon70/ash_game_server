@@ -1,7 +1,7 @@
 defmodule AshGameServer.World do
   @moduledoc """
   World domain managing game world entities.
-  
+
   This domain handles:
   - Zones and areas
   - World objects

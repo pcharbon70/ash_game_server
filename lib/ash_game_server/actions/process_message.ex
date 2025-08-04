@@ -15,14 +15,14 @@ defmodule AshGameServer.Actions.ProcessMessage do
     # Validate message
     with {:ok, cleaned_message} <- clean_message(params.message),
          {:ok, processed_data} <- process_content(cleaned_message, params.metadata) do
-      
+
       result = %{
         processed_message: processed_data,
         original_length: String.length(params.message),
         processed_at: DateTime.utc_now(),
         success: true
       }
-      
+
       {:ok, result}
     else
       {:error, reason} -> {:error, reason}
@@ -33,7 +33,7 @@ defmodule AshGameServer.Actions.ProcessMessage do
 
   defp clean_message(message) when is_binary(message) do
     cleaned = String.trim(message)
-    
+
     if String.length(cleaned) > 0 do
       {:ok, cleaned}
     else
@@ -50,7 +50,7 @@ defmodule AshGameServer.Actions.ProcessMessage do
       processed_with: metadata,
       hash: :crypto.hash(:sha256, message) |> Base.encode16(case: :lower)
     }
-    
+
     {:ok, processed}
   end
 end

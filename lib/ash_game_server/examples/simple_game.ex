@@ -2,12 +2,12 @@ defmodule AshGameServer.Examples.SimpleGame do
   @moduledoc """
   Simple example using the ECS DSL directly.
   """
-  
+
   # Use each extension directly as a module
   require AshGameServer.ECS.ComponentExtension
   require AshGameServer.ECS.SystemExtension
   require AshGameServer.ECS.EntityExtension
-  
+
   # For now, let's create a simple module that demonstrates the DSL concepts
   def example_components do
     [
@@ -47,7 +47,7 @@ defmodule AshGameServer.Examples.SimpleGame do
       }
     ]
   end
-  
+
   def example_systems do
     [
       %AshGameServer.ECS.System{
@@ -70,7 +70,7 @@ defmodule AshGameServer.Examples.SimpleGame do
       }
     ]
   end
-  
+
   def example_archetypes do
     [
       %AshGameServer.ECS.Archetype{

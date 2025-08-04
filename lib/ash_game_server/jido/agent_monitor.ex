@@ -1,7 +1,7 @@
 defmodule AshGameServer.Jido.AgentMonitor do
   @moduledoc """
   Health monitoring and circuit breaker for agents.
-  
+
   This module provides:
   - Agent health checking
   - Circuit breaker patterns
@@ -53,7 +53,7 @@ defmodule AshGameServer.Jido.AgentMonitor do
   def init(_opts) do
     # Schedule initial health check
     Process.send_after(self(), :health_check, @health_check_interval)
-    
+
     state = %{
       monitored_agents: %{},
       circuit_breakers: %{},
@@ -68,7 +68,7 @@ defmodule AshGameServer.Jido.AgentMonitor do
   def handle_cast({:monitor_agent, agent_id, agent_pid}, state) do
     # Monitor the process
     monitor_ref = Process.monitor(agent_pid)
-    
+
     agent_info = %{
       pid: agent_pid,
       monitor_ref: monitor_ref,
@@ -76,10 +76,10 @@ defmodule AshGameServer.Jido.AgentMonitor do
       status: :healthy,
       failure_count: 0
     }
-    
+
     new_monitored = Map.put(state.monitored_agents, agent_id, agent_info)
     new_state = %{state | monitored_agents: new_monitored}
-    
+
     Logger.debug("Started monitoring agent: #{agent_id}")
     {:noreply, new_state}
   end
@@ -89,20 +89,20 @@ defmodule AshGameServer.Jido.AgentMonitor do
     case Map.get(state.monitored_agents, agent_id) do
       nil ->
         {:noreply, state}
-      
+
       agent_info ->
         Process.demonitor(agent_info.monitor_ref, [:flush])
         new_monitored = Map.delete(state.monitored_agents, agent_id)
         new_circuit_breakers = Map.delete(state.circuit_breakers, agent_id)
         new_history = Map.delete(state.health_history, agent_id)
-        
+
         new_state = %{
-          state | 
+          state |
           monitored_agents: new_monitored,
           circuit_breakers: new_circuit_breakers,
           health_history: new_history
         }
-        
+
         Logger.debug("Stopped monitoring agent: #{agent_id}")
         {:noreply, new_state}
     end
@@ -118,49 +118,49 @@ defmodule AshGameServer.Jido.AgentMonitor do
 
   @impl true
   def handle_call(:get_all_health, _from, state) do
-    health_map = 
+    health_map =
       state.monitored_agents
-      |> Enum.map(fn {agent_id, agent_info} -> 
-        {agent_id, agent_info.status} 
+      |> Enum.map(fn {agent_id, agent_info} ->
+        {agent_id, agent_info.status}
       end)
       |> Map.new()
-    
+
     {:reply, {:ok, health_map}, state}
   end
 
   @impl true
   def handle_info(:health_check, state) do
     new_state = perform_health_checks(state)
-    
+
     # Schedule next health check
     Process.send_after(self(), :health_check, @health_check_interval)
-    
+
     {:noreply, new_state}
   end
 
   @impl true
   def handle_info({:DOWN, monitor_ref, :process, _pid, reason}, state) do
     # Find which agent went down
-    agent_id = 
+    agent_id =
       state.monitored_agents
-      |> Enum.find_value(fn {id, info} -> 
+      |> Enum.find_value(fn {id, info} ->
         if info.monitor_ref == monitor_ref, do: id, else: nil
       end)
-    
+
     case agent_id do
       nil ->
         {:noreply, state}
-      
+
       id ->
         Logger.warning("Monitored agent #{id} went down: #{inspect(reason)}")
-        
+
         # Remove from monitoring
         new_monitored = Map.delete(state.monitored_agents, id)
         new_state = %{state | monitored_agents: new_monitored}
-        
+
         # Trigger recovery if needed
         maybe_trigger_recovery(id, reason)
-        
+
         {:noreply, new_state}
     end
   end
@@ -177,7 +177,7 @@ defmodule AshGameServer.Jido.AgentMonitor do
     case check_agent_health(agent_info.pid) do
       :healthy ->
         update_agent_health(state, agent_id, :healthy, 0)
-      
+
       :unhealthy ->
         failure_count = agent_info.failure_count + 1
         status = determine_agent_status(failure_count)
@@ -209,25 +209,25 @@ defmodule AshGameServer.Jido.AgentMonitor do
     case Map.get(state.monitored_agents, agent_id) do
       nil ->
         state
-      
+
       agent_info ->
         updated_info = %{
-          agent_info | 
+          agent_info |
           status: status,
           failure_count: failure_count,
           last_health_check: DateTime.utc_now()
         }
-        
+
         new_monitored = Map.put(state.monitored_agents, agent_id, updated_info)
-        
+
         # Update health history
         history = Map.get(state.health_history, agent_id, [])
         new_history_entry = %{timestamp: DateTime.utc_now(), status: status}
         updated_history = [new_history_entry | Enum.take(history, 9)] # Keep last 10 entries
         new_health_history = Map.put(state.health_history, agent_id, updated_history)
-        
+
         %{
-          state | 
+          state |
           monitored_agents: new_monitored,
           health_history: new_health_history
         }
@@ -237,7 +237,7 @@ defmodule AshGameServer.Jido.AgentMonitor do
   defp maybe_trigger_recovery(agent_id, reason) do
     # Could implement automatic recovery strategies here
     Logger.info("Consider recovery for agent #{agent_id}, reason: #{inspect(reason)}")
-    
+
     # Emit telemetry event for monitoring
     :telemetry.execute(
       [:ash_game_server, :jido, :agent_monitor, :agent_down],

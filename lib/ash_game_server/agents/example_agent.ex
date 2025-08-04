@@ -1,7 +1,7 @@
 defmodule AshGameServer.Agents.ExampleAgent do
   @moduledoc """
   Example game agent for testing Jido integration.
-  
+
   This agent demonstrates:
   - Basic agent lifecycle
   - State management with validation
@@ -30,7 +30,7 @@ defmodule AshGameServer.Agents.ExampleAgent do
         else
           {:error, {:invalid_transition, old_status, new_status}}
         end
-      
+
       _ ->
         {:ok, state}
     end
@@ -42,7 +42,7 @@ defmodule AshGameServer.Agents.ExampleAgent do
         # Process incoming message
         new_count = Map.get(state, :message_count, 0) + 1
         new_state = Map.put(state, :message_count, new_count)
-        
+
         # Broadcast response signal
         _response_signal = broadcast_signal(
           new_state,
@@ -53,15 +53,15 @@ defmodule AshGameServer.Agents.ExampleAgent do
             total_messages: new_count
           }
         )
-        
+
         {:ok, new_state}
-      
+
       "status.update" ->
         # Update agent status
         new_status = signal.data[:status] || :idle
         new_state = Map.put(state, :status, new_status)
         {:ok, new_state}
-      
+
       _ ->
         # Call parent implementation for unhandled signals
         super(signal, state)
@@ -88,7 +88,7 @@ defmodule AshGameServer.Agents.ExampleAgent do
       "external",
       %{message: message, sent_at: DateTime.utc_now()}
     )
-    
+
     send(agent_pid, {:signal, signal})
   end
 
@@ -101,7 +101,7 @@ defmodule AshGameServer.Agents.ExampleAgent do
       "external",
       %{status: new_status, updated_at: DateTime.utc_now()}
     )
-    
+
     send(agent_pid, {:signal, signal})
   end
 
@@ -113,7 +113,7 @@ defmodule AshGameServer.Agents.ExampleAgent do
       :active => [:idle, :processing],
       :processing => [:idle, :active]
     }
-    
+
     to in Map.get(valid_transitions, from, [])
   end
 end

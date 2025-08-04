@@ -1,7 +1,7 @@
 defmodule AshGameServer.Jido.AgentRegistry do
   @moduledoc """
   Distributed agent registry using Horde for agent discovery and metadata management.
-  
+
   This registry provides:
   - Distributed agent registration across nodes
   - Agent metadata storage and retrieval
@@ -67,7 +67,7 @@ defmodule AshGameServer.Jido.AgentRegistry do
 
     # Monitor agent processes
     Process.flag(:trap_exit, true)
-    
+
     state = %{
       table: table,
       monitors: %{}
@@ -83,7 +83,7 @@ defmodule AshGameServer.Jido.AgentRegistry do
       [] ->
         # Monitor the agent process
         monitor_ref = Process.monitor(pid)
-        
+
         agent_info = %{
           id: agent_id,
           pid: pid,
@@ -91,15 +91,15 @@ defmodule AshGameServer.Jido.AgentRegistry do
           registered_at: DateTime.utc_now(),
           status: :active
         }
-        
+
         :ets.insert(state.table, {agent_id, agent_info})
-        
+
         new_monitors = Map.put(state.monitors, monitor_ref, agent_id)
         new_state = %{state | monitors: new_monitors}
-        
+
         Logger.debug("Registered agent: #{agent_id}")
         {:reply, {:ok, agent_info}, new_state}
-      
+
       [{_id, existing_info}] ->
         {:reply, {:error, {:already_registered, existing_info}}, state}
     end
@@ -112,7 +112,7 @@ defmodule AshGameServer.Jido.AgentRegistry do
         :ets.delete(state.table, agent_id)
         Logger.debug("Unregistered agent: #{agent_id}")
         {:reply, {:ok, agent_info}, state}
-      
+
       [] ->
         {:reply, {:error, :not_found}, state}
     end
@@ -139,7 +139,7 @@ defmodule AshGameServer.Jido.AgentRegistry do
         updated_info = %{agent_info | metadata: Map.merge(agent_info.metadata, new_metadata)}
         :ets.insert(state.table, {agent_id, updated_info})
         {:reply, {:ok, updated_info}, state}
-      
+
       [] ->
         {:reply, {:error, :not_found}, state}
     end
@@ -150,14 +150,14 @@ defmodule AshGameServer.Jido.AgentRegistry do
     case Map.get(state.monitors, monitor_ref) do
       nil ->
         {:noreply, state}
-      
+
       agent_id ->
         Logger.info("Agent #{agent_id} went down: #{inspect(reason)}")
         :ets.delete(state.table, agent_id)
-        
+
         new_monitors = Map.delete(state.monitors, monitor_ref)
         new_state = %{state | monitors: new_monitors}
-        
+
         {:noreply, new_state}
     end
   end

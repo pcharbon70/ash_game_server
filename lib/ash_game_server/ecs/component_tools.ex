@@ -1,7 +1,7 @@
 defmodule AshGameServer.ECS.ComponentTools do
   @moduledoc """
   Development and debugging tools for component management.
-  
+
   Provides utilities for:
   - Component inspection and debugging
   - Performance profiling and analysis
@@ -9,17 +9,20 @@ defmodule AshGameServer.ECS.ComponentTools do
   - Data validation and migration
   - Development workflows
   """
-  
-  alias AshGameServer.ECS.{ComponentRegistry, EnhancedStorage, ComponentQuery, ComponentEvents}
+
+  alias AshGameServer.ECS.ComponentRegistry
+  alias AshGameServer.ECS.EnhancedStorage
+  alias AshGameServer.ECS.ComponentQuery
+  alias AshGameServer.ECS.ComponentEvents
   alias AshGameServer.Storage
-  
+
   @type entity_id :: term()
   @type component_name :: atom()
   @type profiling_result :: map()
   @type validation_report :: map()
-  
+
   # Component Inspector
-  
+
   @doc """
   Inspects a component instance with detailed information.
   """
@@ -31,7 +34,7 @@ defmodule AshGameServer.ECS.ComponentTools do
           {:ok, meta} -> meta
           _ -> %{}
         end
-        
+
         %{
           entity_id: entity_id,
           component: component_name,
@@ -43,11 +46,11 @@ defmodule AshGameServer.ECS.ComponentTools do
           recent_events: get_recent_events(entity_id, component_name),
           storage_stats: EnhancedStorage.get_component_stats(component_name)
         }
-      
+
       error -> %{error: error}
     end
   end
-  
+
   @doc """
   Inspects all components on an entity.
   """
@@ -58,7 +61,7 @@ defmodule AshGameServer.ECS.ComponentTools do
         component_details = Enum.map(components, fn {name, _data} ->
           {name, inspect_component(entity_id, name)}
         end) |> Enum.into(%{})
-        
+
         %{
           entity_id: entity_id,
           component_count: map_size(components),
@@ -66,11 +69,11 @@ defmodule AshGameServer.ECS.ComponentTools do
           total_memory: calculate_entity_memory(components),
           archetype: determine_archetype(Map.keys(components))
         }
-      
+
       error -> %{error: error}
     end
   end
-  
+
   @doc """
   Shows a summary of all registered components.
   """
@@ -79,7 +82,7 @@ defmodule AshGameServer.ECS.ComponentTools do
     ComponentRegistry.list_components()
     |> Enum.map(fn metadata ->
       stats = EnhancedStorage.get_component_stats(metadata.name)
-      
+
       Map.merge(metadata, %{
         instance_count: count_component_instances(metadata.name),
         storage_stats: stats,
@@ -87,9 +90,9 @@ defmodule AshGameServer.ECS.ComponentTools do
       })
     end)
   end
-  
+
   # Performance Profiler
-  
+
   @doc """
   Profiles component operations over a time period.
   """
@@ -97,16 +100,16 @@ defmodule AshGameServer.ECS.ComponentTools do
   def profile_component(component_name, duration_ms \\ 5000) do
     start_time = System.monotonic_time()
     start_stats = EnhancedStorage.get_component_stats(component_name)
-    
+
     # Wait for the specified duration
     Process.sleep(duration_ms)
-    
+
     end_time = System.monotonic_time()
     end_stats = EnhancedStorage.get_component_stats(component_name)
-    
+
     # Calculate metrics
     duration_seconds = (end_time - start_time) / :timer.seconds(1)
-    
+
     %{
       component: component_name,
       duration_seconds: duration_seconds,
@@ -124,7 +127,7 @@ defmodule AshGameServer.ECS.ComponentTools do
       recommendations: generate_performance_recommendations(component_name, end_stats)
     }
   end
-  
+
   @doc """
   Profiles a specific query operation.
   """
@@ -133,7 +136,7 @@ defmodule AshGameServer.ECS.ComponentTools do
     {time, result} = :timer.tc(fn ->
       ComponentQuery.execute(query)
     end)
-    
+
     %{
       query: query,
       execution_time_microseconds: time,
@@ -146,7 +149,7 @@ defmodule AshGameServer.ECS.ComponentTools do
       optimization_suggestions: suggest_query_optimizations(query, time)
     }
   end
-  
+
   @doc """
   Runs a benchmark comparing different query approaches.
   """
@@ -159,11 +162,11 @@ defmodule AshGameServer.ECS.ComponentTools do
         end)
         time
       end
-      
+
       avg_time = Enum.sum(times) / length(times)
       min_time = Enum.min(times)
       max_time = Enum.max(times)
-      
+
       %{
         query: query,
         iterations: iterations,
@@ -173,27 +176,27 @@ defmodule AshGameServer.ECS.ComponentTools do
         std_deviation: calculate_std_deviation(times, avg_time)
       }
     end)
-    
+
     %{
       benchmark_results: results,
       fastest_query: Enum.min_by(results, & &1.avg_time_microseconds),
       slowest_query: Enum.max_by(results, & &1.avg_time_microseconds)
     }
   end
-  
+
   # Memory Analyzer
-  
+
   @doc """
   Analyzes memory usage across all components.
   """
   @spec analyze_memory() :: map()
   def analyze_memory do
     components = ComponentRegistry.list_components()
-    
+
     component_memory = Enum.map(components, fn metadata ->
       memory = estimate_component_memory(metadata.name)
       instance_count = count_component_instances(metadata.name)
-      
+
       %{
         component: metadata.name,
         total_memory_bytes: memory,
@@ -202,15 +205,15 @@ defmodule AshGameServer.ECS.ComponentTools do
         memory_percentage: 0  # Will be calculated below
       }
     end)
-    
+
     total_memory = Enum.sum(Enum.map(component_memory, & &1.total_memory_bytes))
-    
+
     # Calculate percentages
     component_memory_with_percentages = Enum.map(component_memory, fn comp ->
       percentage = if total_memory > 0, do: comp.total_memory_bytes / total_memory * 100, else: 0
       Map.put(comp, :memory_percentage, percentage)
     end)
-    
+
     %{
       total_memory_bytes: total_memory,
       total_memory_mb: total_memory / (1024 * 1024),
@@ -219,7 +222,7 @@ defmodule AshGameServer.ECS.ComponentTools do
       memory_recommendations: generate_memory_recommendations(component_memory_with_percentages)
     }
   end
-  
+
   @doc """
   Tracks memory usage over time.
   """
@@ -230,9 +233,9 @@ defmodule AshGameServer.ECS.ComponentTools do
     end)
     :ok
   end
-  
+
   # Validation Tools
-  
+
   @doc """
   Validates all instances of a component type.
   """
@@ -240,7 +243,7 @@ defmodule AshGameServer.ECS.ComponentTools do
   def validate_component_instances(component_name) do
     # Get all entities with this component
     entities = Storage.query_entities([component_name])
-    
+
     validation_results = Enum.map(entities, fn entity_id ->
       case EnhancedStorage.get_component(entity_id, component_name) do
         {:ok, data} ->
@@ -250,14 +253,14 @@ defmodule AshGameServer.ECS.ComponentTools do
           %{entity_id: entity_id, validation: {:error, error}}
       end
     end)
-    
+
     errors = Enum.filter(validation_results, fn result ->
       case result.validation do
         :ok -> false
         _ -> true
       end
     end)
-    
+
     %{
       component: component_name,
       total_instances: length(validation_results),
@@ -267,7 +270,7 @@ defmodule AshGameServer.ECS.ComponentTools do
       validation_rate: (length(validation_results) - length(errors)) / length(validation_results) * 100
     }
   end
-  
+
   @doc """
   Migrates component data to a new version.
   """
@@ -275,13 +278,13 @@ defmodule AshGameServer.ECS.ComponentTools do
   def migrate_component_data(component_name, from_version) do
     if ComponentRegistry.can_migrate?(component_name, from_version, from_version + 1) do
       entities = Storage.query_entities([component_name])
-      
+
       migration_results = Enum.map(entities, fn entity_id ->
         migrate_single_entity(entity_id, component_name, from_version)
       end)
-      
+
       successful = Enum.count(migration_results, & &1.status == :success)
-      
+
       %{
         component: component_name,
         from_version: from_version,
@@ -296,7 +299,7 @@ defmodule AshGameServer.ECS.ComponentTools do
       %{error: :migration_not_supported}
     end
   end
-  
+
   # Private Helper Functions
 
   defp migrate_single_entity(entity_id, component_name, from_version) do
@@ -313,7 +316,7 @@ defmodule AshGameServer.ECS.ComponentTools do
         %{entity_id: entity_id, status: :error, error: error}
     end
   end
-  
+
   defp validate_component_data(component_name, data) do
     case ComponentRegistry.get_component(component_name) do
       {:ok, metadata} ->
@@ -326,40 +329,40 @@ defmodule AshGameServer.ECS.ComponentTools do
       _ -> {:error, :component_not_registered}
     end
   end
-  
+
   defp get_recent_events(entity_id, component_name) do
     ComponentEvents.get_event_history(entity_id, component_name, limit: 5)
   end
-  
+
   defp calculate_entity_memory(components) do
     Enum.reduce(components, 0, fn {_name, data}, acc ->
       acc + :erts_debug.size(data) * 8  # Approximate bytes
     end)
   end
-  
+
   defp determine_archetype(component_names) do
     # This would match against known archetypes
     # For now, just return the component list
     component_names
   end
-  
+
   defp count_component_instances(component_name) do
     length(Storage.query_entities([component_name]))
   end
-  
+
   defp estimate_component_memory(component_name) do
     entities = Storage.query_entities([component_name])
-    
+
     sample_size = min(100, length(entities))
     sample_entities = Enum.take_random(entities, sample_size)
-    
+
     sample_memory = Enum.reduce(sample_entities, 0, fn entity_id, acc ->
       case EnhancedStorage.get_component(entity_id, component_name) do
         {:ok, data} -> acc + :erts_debug.size(data) * 8
         _ -> acc
       end
     end)
-    
+
     if sample_size > 0 do
       avg_memory = sample_memory / sample_size
       avg_memory * length(entities)
@@ -367,7 +370,7 @@ defmodule AshGameServer.ECS.ComponentTools do
       0
     end
   end
-  
+
   defp calculate_average_time(end_stats, start_stats, operation) do
     case operation do
       :read ->
@@ -380,27 +383,27 @@ defmodule AshGameServer.ECS.ComponentTools do
         if count_diff > 0, do: time_diff / count_diff, else: 0
     end
   end
-  
+
   defp generate_performance_recommendations(_component_name, stats) do
     recommendations = []
-    
+
     # Check read/write ratio
     recommendations = if stats.read_count > stats.write_count * 10 do
       ["Consider adding more indexes for read optimization" | recommendations]
     else
       recommendations
     end
-    
+
     # Check average times
     recommendations = if Map.get(stats, :total_read_time, 0) / max(stats.read_count, 1) > 1000 do
       ["Read operations are slow, consider optimizing data structure" | recommendations]
     else
       recommendations
     end
-    
+
     recommendations
   end
-  
+
   defp grade_query_performance(time_microseconds) do
     cond do
       time_microseconds < 1000 -> :excellent
@@ -409,58 +412,58 @@ defmodule AshGameServer.ECS.ComponentTools do
       true -> :poor
     end
   end
-  
+
   defp suggest_query_optimizations(query, _time) do
     suggestions = []
-    
+
     # Check for index usage
     suggestions = if query.where != [] do
       ["Consider adding indexes for WHERE clause fields" | suggestions]
     else
       suggestions
     end
-    
+
     # Check for joins
     suggestions = if query.joins != [] do
       ["Consider denormalizing data to avoid joins" | suggestions]
     else
       suggestions
     end
-    
+
     suggestions
   end
-  
+
   defp calculate_std_deviation(values, mean) do
     variance = Enum.reduce(values, 0, fn value, acc ->
       acc + :math.pow(value - mean, 2)
     end) / length(values)
-    
+
     :math.sqrt(variance)
   end
-  
+
   defp generate_memory_recommendations(component_memory) do
     recommendations = []
-    
+
     # Find components using excessive memory
     high_memory_components = Enum.filter(component_memory, & &1.memory_percentage > 20)
-    
+
     recommendations = if high_memory_components != [] do
       component_names = Enum.map(high_memory_components, & &1.component)
       ["High memory usage in components: #{inspect(component_names)}" | recommendations]
     else
       recommendations
     end
-    
+
     recommendations
   end
-  
+
   defp memory_tracking_loop(interval_ms) do
     memory_data = analyze_memory()
-    
+
     # Log or store memory data
     require Logger
     Logger.info("Memory usage: #{memory_data.total_memory_mb} MB")
-    
+
     Process.sleep(interval_ms)
     memory_tracking_loop(interval_ms)
   end

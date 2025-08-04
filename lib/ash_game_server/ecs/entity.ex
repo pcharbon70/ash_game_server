@@ -1,9 +1,9 @@
 defmodule AshGameServer.ECS.Entity do
   import Bitwise
-  
+
   @moduledoc """
   Advanced Entity management system for the ECS architecture.
-  
+
   Provides comprehensive entity lifecycle management with:
   - Advanced ID generation strategies
   - Entity versioning and lifecycle tracking
@@ -74,16 +74,16 @@ defmodule AshGameServer.ECS.Entity do
     # Epoch: 2020-01-01 00:00:00 UTC
     epoch = 1_577_836_800_000
     timestamp = System.system_time(:millisecond) - epoch
-    
+
     # Worker ID (can be node-specific)
     worker_id = :persistent_term.get({__MODULE__, :worker_id}, 1)
-    
+
     # Sequence number
     sequence = :persistent_term.get({__MODULE__, :sequence}, 0) + 1
     |> rem(4096)  # 12-bit sequence
-    
+
     :persistent_term.put({__MODULE__, :sequence}, sequence)
-    
+
     # Snowflake format: 41 bits timestamp + 10 bits worker + 12 bits sequence
     (timestamp <<< 22) ||| (worker_id <<< 12) ||| sequence
   end
@@ -97,7 +97,7 @@ defmodule AshGameServer.ECS.Entity do
   def create(opts \\ []) do
     id_strategy = Keyword.get(opts, :id_strategy, :incremental)
     entity_id = generate_id(id_strategy)
-    
+
     entity = %{
       id: entity_id,
       version: 1,
@@ -116,7 +116,7 @@ defmodule AshGameServer.ECS.Entity do
 
     # Store in registry
     AshGameServer.ECS.EntityRegistry.register_entity(entity)
-    
+
     {:ok, entity}
   end
 
@@ -130,43 +130,43 @@ defmodule AshGameServer.ECS.Entity do
         updated_entity = apply_updates(entity, updates)
         AshGameServer.ECS.EntityRegistry.update_entity(updated_entity)
         {:ok, updated_entity}
-      
+
       error -> error
     end
   end
-  
+
   defp apply_updates(entity, updates) do
     Enum.reduce(updates, entity, &apply_single_update/2)
   end
-  
+
   defp apply_single_update({:metadata, value}, entity) do
-    %{entity | 
+    %{entity |
       metadata: Map.merge(entity.metadata, value),
       updated_at: DateTime.utc_now(),
       version: entity.version + 1
     }
   end
-  
+
   defp apply_single_update({:tags, value}, entity) do
-    %{entity | 
+    %{entity |
       tags: Enum.uniq(entity.tags ++ value),
       updated_at: DateTime.utc_now(),
       version: entity.version + 1
     }
   end
-  
+
   defp apply_single_update({:status, value}, entity) do
     event = status_to_event(value)
-    %{entity | 
-      status: value, 
+    %{entity |
+      status: value,
       updated_at: DateTime.utc_now(),
       version: entity.version + 1,
       lifecycle_events: [event | entity.lifecycle_events]
     }
   end
-  
+
   defp apply_single_update({key, value}, entity) do
-    %{entity | 
+    %{entity |
       key => value,
       updated_at: DateTime.utc_now(),
       version: entity.version + 1
@@ -182,31 +182,31 @@ defmodule AshGameServer.ECS.Entity do
       {:ok, entity} ->
         # Destroy all children first
         Enum.each(entity.children, &destroy/1)
-        
+
         # Remove from parent's children list
         if entity.parent_id do
           remove_child(entity.parent_id, entity_id)
         end
-        
+
         # Remove all components
         Enum.each(entity.components, fn component_name ->
           AshGameServer.Storage.remove_component(entity_id, component_name)
         end)
-        
+
         # Update status to destroyed
-        destroyed_entity = %{entity | 
+        destroyed_entity = %{entity |
           status: :destroyed,
           updated_at: DateTime.utc_now(),
           lifecycle_events: [:destroyed | entity.lifecycle_events]
         }
-        
+
         AshGameServer.ECS.EntityRegistry.update_entity(destroyed_entity)
-        
+
         # Schedule for cleanup/pooling
         schedule_cleanup(entity_id)
-        
+
         :ok
-      
+
       error -> error
     end
   end
@@ -225,13 +225,13 @@ defmodule AshGameServer.ECS.Entity do
           lifecycle_events: [:activated | entity.lifecycle_events],
           metadata: Map.merge(entity.metadata, Keyword.get(opts, :metadata, %{}))
         }
-        
+
         AshGameServer.ECS.EntityRegistry.update_entity(activated_entity)
         {:ok, activated_entity}
-      
+
       {:ok, entity} ->
         {:error, {:invalid_status, entity.status}}
-      
+
       error -> error
     end
   end
@@ -363,14 +363,14 @@ defmodule AshGameServer.ECS.Entity do
 
   defp initialize_pool(config) do
     :ets.new(:entity_pool, [:named_table, :public, :bag])
-    
+
     # Pre-allocate entity IDs
     prealloc_count = Map.get(config, :prealloc_count, 100)
     Enum.each(1..prealloc_count, fn _ ->
       id = generate_id(:incremental)
       :ets.insert(:entity_pool, {:available, id})
     end)
-    
+
     :ok
   end
 
@@ -389,7 +389,7 @@ defmodule AshGameServer.ECS.Entity do
         config = :persistent_term.get({__MODULE__, :pooling_config}, %{})
         max_pool_size = Map.get(config, :max_pool_size, 1000)
         current_pool_size = :ets.info(:entity_pool, :size)
-        
+
         if current_pool_size < max_pool_size do
           # Reset and pool the entity
           pooled_entity = %{entity |
@@ -404,14 +404,14 @@ defmodule AshGameServer.ECS.Entity do
             lifecycle_events: [:pooled],
             updated_at: DateTime.utc_now()
           }
-          
+
           AshGameServer.ECS.EntityRegistry.update_entity(pooled_entity)
           return_to_pool(entity_id)
         else
           # Permanently remove
           AshGameServer.ECS.EntityRegistry.unregister_entity(entity_id)
         end
-      
+
       _ -> :ok
     end
   end
@@ -420,13 +420,13 @@ defmodule AshGameServer.ECS.Entity do
     case AshGameServer.ECS.EntityRegistry.get_entity(parent_id) do
       {:ok, parent} ->
         updated_children = List.delete(parent.children, child_id)
-        updated_parent = %{parent | 
+        updated_parent = %{parent |
           children: updated_children,
           updated_at: DateTime.utc_now(),
           version: parent.version + 1
         }
         AshGameServer.ECS.EntityRegistry.update_entity(updated_parent)
-      
+
       _ -> :ok
     end
   end

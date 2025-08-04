@@ -1,22 +1,22 @@
 defmodule AshGameServer.ECS.Transformers.ValidateComponents do
   @moduledoc """
   Transformer that validates component definitions.
-  
+
   Ensures that:
   - Component names are unique
   - Attribute names within components are unique
   - Attribute types are valid
   - Default values match attribute types
   """
-  
+
   use Spark.Dsl.Transformer
-  
+
   alias Spark.Dsl.Transformer
-  
+
   @impl true
   def transform(dsl_state) do
     components = Transformer.get_entities(dsl_state, [:components])
-    
+
     with :ok <- validate_unique_names(components),
          :ok <- validate_attributes(components) do
       {:ok, dsl_state}
@@ -25,14 +25,14 @@ defmodule AshGameServer.ECS.Transformers.ValidateComponents do
         {:error, dsl_state, error}
     end
   end
-  
+
   defp validate_unique_names(components) do
     names = Enum.map(components, & &1.name)
-    
+
     case names -- Enum.uniq(names) do
       [] ->
         :ok
-        
+
       duplicates ->
         {:error,
          Spark.Error.DslError.exception(
@@ -41,7 +41,7 @@ defmodule AshGameServer.ECS.Transformers.ValidateComponents do
          )}
     end
   end
-  
+
   defp validate_attributes(components) do
     Enum.reduce_while(components, :ok, fn component, :ok ->
       case validate_component_attributes(component) do
@@ -50,21 +50,21 @@ defmodule AshGameServer.ECS.Transformers.ValidateComponents do
       end
     end)
   end
-  
+
   defp validate_component_attributes(component) do
     with :ok <- validate_unique_attribute_names(component),
          :ok <- validate_attribute_types(component) do
       validate_default_values(component)
     end
   end
-  
+
   defp validate_unique_attribute_names(component) do
     attr_names = Enum.map(component.attributes, & &1.name)
-    
+
     case attr_names -- Enum.uniq(attr_names) do
       [] ->
         :ok
-        
+
       duplicates ->
         {:error,
          Spark.Error.DslError.exception(
@@ -73,10 +73,10 @@ defmodule AshGameServer.ECS.Transformers.ValidateComponents do
          )}
     end
   end
-  
+
   defp validate_attribute_types(component) do
     valid_types = [:integer, :float, :string, :boolean, :atom, :map, :list, :uuid, :datetime]
-    
+
     Enum.reduce_while(component.attributes, :ok, fn attr, :ok ->
       if attr.type in valid_types do
         {:cont, :ok}
@@ -90,7 +90,7 @@ defmodule AshGameServer.ECS.Transformers.ValidateComponents do
       end
     end)
   end
-  
+
   defp validate_default_values(component) do
     Enum.reduce_while(component.attributes, :ok, fn attr, :ok ->
       if attr.default == nil or valid_default?(attr.type, attr.default) do
@@ -105,7 +105,7 @@ defmodule AshGameServer.ECS.Transformers.ValidateComponents do
       end
     end)
   end
-  
+
   defp valid_default?(type, value) do
     type_validators = %{
       integer: &is_integer/1,
@@ -118,7 +118,7 @@ defmodule AshGameServer.ECS.Transformers.ValidateComponents do
       uuid: &is_binary/1,
       datetime: &match?(%DateTime{}, &1)
     }
-    
+
     case Map.get(type_validators, type) do
       nil -> false
       validator -> validator.(value)

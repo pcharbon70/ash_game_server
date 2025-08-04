@@ -1,7 +1,7 @@
 defmodule AshGameServer.ECS.EntityRelationships do
   @moduledoc """
   Entity Relationship management system for the ECS architecture.
-  
+
   Provides comprehensive relationship management with:
   - Parent-child hierarchies with inheritance
   - Entity groups and collections
@@ -19,7 +19,7 @@ defmodule AshGameServer.ECS.EntityRelationships do
   @type relationship_type :: :parent | :child | :group_member | :group_owner | :linked
   @type group_id :: atom() | String.t()
   @type hierarchy_level :: non_neg_integer()
-  
+
   @type relationship :: %{
     from_entity: entity_id(),
     to_entity: entity_id(),
@@ -115,7 +115,7 @@ defmodule AshGameServer.ECS.EntityRelationships do
   def get_hierarchy_level(entity_id) do
     case :ets.lookup(@hierarchy_cache_table, entity_id) do
       [{^entity_id, level}] -> level
-      [] -> 
+      [] ->
         # Calculate and cache
         level = calculate_hierarchy_level(entity_id)
         :ets.insert(@hierarchy_cache_table, {entity_id, level})
@@ -224,7 +224,7 @@ defmodule AshGameServer.ECS.EntityRelationships do
   @doc """
   Create a custom relationship between entities.
   """
-  @spec create_relationship(entity_id(), entity_id(), relationship_type(), map()) :: 
+  @spec create_relationship(entity_id(), entity_id(), relationship_type(), map()) ::
     :ok | {:error, term()}
   def create_relationship(from_entity, to_entity, type, metadata \\ %{}) do
     GenServer.call(__MODULE__, {:create_relationship, from_entity, to_entity, type, metadata})
@@ -246,11 +246,11 @@ defmodule AshGameServer.ECS.EntityRelationships do
     outgoing = :ets.select(@relationships_table, [
       {{{entity_id, :"$1"}, :"$2"}, [], [:"$2"]}
     ])
-    
+
     incoming = :ets.select(@relationships_table, [
       {{{:"$1", entity_id}, :"$2"}, [], [:"$2"]}
     ])
-    
+
     outgoing ++ incoming
   end
 
@@ -312,7 +312,7 @@ defmodule AshGameServer.ECS.EntityRelationships do
   def get_siblings(entity_id) do
     case get_parent(entity_id) do
       nil -> []
-      parent_id -> 
+      parent_id ->
         get_children(parent_id)
         |> Enum.reject(&(&1 == entity_id))
     end
@@ -443,26 +443,26 @@ defmodule AshGameServer.ECS.EntityRelationships do
     with {:ok, parent} <- EntityRegistry.get_entity(parent_id),
          {:ok, child} <- EntityRegistry.get_entity(child_id),
          :ok <- validate_child_addition(parent_id, child_id) do
-      
+
       # Update parent entity
       updated_children = [child_id | parent.children] |> Enum.uniq()
-      updated_parent = %{parent | 
+      updated_parent = %{parent |
         children: updated_children,
         updated_at: DateTime.utc_now(),
         version: parent.version + 1
       }
-      
+
       # Update child entity
       updated_child = %{child |
         parent_id: parent_id,
         updated_at: DateTime.utc_now(),
         version: child.version + 1
       }
-      
+
       # Store updates
       EntityRegistry.update_entity(updated_parent)
       EntityRegistry.update_entity(updated_child)
-      
+
       # Create relationship record
       relationship = %{
         from_entity: parent_id,
@@ -471,13 +471,13 @@ defmodule AshGameServer.ECS.EntityRelationships do
         metadata: metadata,
         created_at: DateTime.utc_now()
       }
-      
+
       :ets.insert(@relationships_table, {{parent_id, child_id}, relationship})
-      
+
       # Invalidate hierarchy cache for affected entities
       invalidate_hierarchy_cache(parent_id)
       invalidate_hierarchy_cache(child_id)
-      
+
       :ok
     end
   end
@@ -485,7 +485,7 @@ defmodule AshGameServer.ECS.EntityRelationships do
   defp do_remove_child(parent_id, child_id) do
     with {:ok, parent} <- EntityRegistry.get_entity(parent_id),
          {:ok, child} <- EntityRegistry.get_entity(child_id) do
-      
+
       # Update parent entity
       updated_children = List.delete(parent.children, child_id)
       updated_parent = %{parent |
@@ -493,25 +493,25 @@ defmodule AshGameServer.ECS.EntityRelationships do
         updated_at: DateTime.utc_now(),
         version: parent.version + 1
       }
-      
+
       # Update child entity
       updated_child = %{child |
         parent_id: nil,
         updated_at: DateTime.utc_now(),
         version: child.version + 1
       }
-      
+
       # Store updates
       EntityRegistry.update_entity(updated_parent)
       EntityRegistry.update_entity(updated_child)
-      
+
       # Remove relationship record
       :ets.delete(@relationships_table, {parent_id, child_id})
-      
+
       # Invalidate hierarchy cache
       invalidate_hierarchy_cache(parent_id)
       invalidate_hierarchy_cache(child_id)
-      
+
       :ok
     end
   end
@@ -520,10 +520,10 @@ defmodule AshGameServer.ECS.EntityRelationships do
     cond do
       parent_id == child_id ->
         {:error, :cannot_parent_self}
-      
+
       ancestor?(child_id, parent_id) ->
         {:error, :would_create_cycle}
-      
+
       true -> :ok
     end
   end
@@ -534,12 +534,12 @@ defmodule AshGameServer.ECS.EntityRelationships do
     else
       children = get_children(entity_id)
       direct_descendants = children
-      
-      indirect_descendants = 
+
+      indirect_descendants =
         Enum.flat_map(children, fn child_id ->
           collect_descendants(child_id, [entity_id | visited])
         end)
-      
+
       Enum.uniq(direct_descendants ++ indirect_descendants)
     end
   end
@@ -566,7 +566,7 @@ defmodule AshGameServer.ECS.EntityRelationships do
   defp invalidate_hierarchy_cache(entity_id) do
     # Remove from cache - will be recalculated on next access
     :ets.delete(@hierarchy_cache_table, entity_id)
-    
+
     # Also invalidate descendants
     descendants = collect_descendants(entity_id, [])
     Enum.each(descendants, fn descendant_id ->
@@ -588,10 +588,10 @@ defmodule AshGameServer.ECS.EntityRelationships do
           created_at: DateTime.utc_now(),
           updated_at: DateTime.utc_now()
         }
-        
+
         :ets.insert(@groups_table, {group_id, group})
         {:ok, group}
-      
+
       _ ->
         {:error, :group_already_exists}
     end
@@ -604,11 +604,11 @@ defmodule AshGameServer.ECS.EntityRelationships do
         Enum.each(group.members, fn member_id ->
           :ets.delete_object(@group_members_table, {member_id, group_id})
         end)
-        
+
         # Remove group
         :ets.delete(@groups_table, group_id)
         :ok
-      
+
       [] ->
         {:error, :group_not_found}
     end
@@ -620,14 +620,14 @@ defmodule AshGameServer.ECS.EntityRelationships do
       false -> {:error, :entity_not_found}
     end
   end
-  
+
   defp add_entity_to_existing_group(entity_id, group_id) do
     case :ets.lookup(@groups_table, group_id) do
       [{^group_id, group}] -> add_member_to_group(entity_id, group_id, group)
       [] -> {:error, :group_not_found}
     end
   end
-  
+
   defp add_member_to_group(entity_id, group_id, group) do
     if entity_id in group.members do
       {:error, :already_member}
@@ -635,17 +635,17 @@ defmodule AshGameServer.ECS.EntityRelationships do
       update_group_membership(entity_id, group_id, group)
     end
   end
-  
+
   defp update_group_membership(entity_id, group_id, group) do
     updated_members = [entity_id | group.members]
     updated_group = %{group |
       members: updated_members,
       updated_at: DateTime.utc_now()
     }
-    
+
     :ets.insert(@groups_table, {group_id, updated_group})
     :ets.insert(@group_members_table, {entity_id, group_id})
-    
+
     :ok
   end
 
@@ -657,12 +657,12 @@ defmodule AshGameServer.ECS.EntityRelationships do
           members: updated_members,
           updated_at: DateTime.utc_now()
         }
-        
+
         :ets.insert(@groups_table, {group_id, updated_group})
         :ets.delete_object(@group_members_table, {entity_id, group_id})
-        
+
         :ok
-      
+
       [] ->
         {:error, :group_not_found}
     end
@@ -674,7 +674,7 @@ defmodule AshGameServer.ECS.EntityRelationships do
         updated_group = %{Map.merge(group, updates) | updated_at: DateTime.utc_now()}
         :ets.insert(@groups_table, {group_id, updated_group})
         :ok
-      
+
       [] ->
         {:error, :group_not_found}
     end
@@ -683,7 +683,7 @@ defmodule AshGameServer.ECS.EntityRelationships do
   defp do_create_relationship(from_entity, to_entity, type, metadata) do
     with true <- EntityRegistry.exists?(from_entity),
          true <- EntityRegistry.exists?(to_entity) do
-      
+
       relationship = %{
         from_entity: from_entity,
         to_entity: to_entity,
@@ -691,7 +691,7 @@ defmodule AshGameServer.ECS.EntityRelationships do
         metadata: metadata,
         created_at: DateTime.utc_now()
       }
-      
+
       :ets.insert(@relationships_table, {{from_entity, to_entity}, relationship})
       :ok
     else
@@ -709,7 +709,7 @@ defmodule AshGameServer.ECS.EntityRelationships do
     Enum.each(groups, fn group_id ->
       do_remove_from_group(entity_id, group_id)
     end)
-    
+
     # Remove all relationships involving this entity
     relationships = get_relationships(entity_id)
     Enum.each(relationships, fn relationship ->
@@ -719,10 +719,10 @@ defmodule AshGameServer.ECS.EntityRelationships do
         :ets.delete(@relationships_table, {relationship.from_entity, relationship.to_entity})
       end
     end)
-    
+
     # Remove from hierarchy cache
     :ets.delete(@hierarchy_cache_table, entity_id)
-    
+
     :ok
   end
 end

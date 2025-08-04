@@ -1,11 +1,11 @@
 defmodule AshGameServer.ECS.SystemExtension do
   @moduledoc """
   Spark DSL extension for defining ECS systems and their behaviors.
-  
+
   Systems process entities with specific component combinations,
   implementing the game logic and rules.
   """
-  
+
   # Define filter entity first (used by system entity)
   @filter_entity %Spark.Dsl.Entity{
     name: :filter,
@@ -29,7 +29,7 @@ defmodule AshGameServer.ECS.SystemExtension do
       ]
     ]
   }
-  
+
   # Define event entity (used by system entity)
   @event_entity %Spark.Dsl.Entity{
     name: :on_event,
@@ -53,13 +53,13 @@ defmodule AshGameServer.ECS.SystemExtension do
       ]
     ]
   }
-  
+
   # Define system entity
   @system_entity %Spark.Dsl.Entity{
     name: :system,
     describe: """
     Defines a system that processes entities with specific components.
-    
+
     Systems contain the game logic and operate on entities that match
     their component requirements.
     """,
@@ -70,7 +70,7 @@ defmodule AshGameServer.ECS.SystemExtension do
         optional [:acceleration]
         run_every 16
         priority :high
-        
+
         process fn entity, components ->
           # Physics calculations
           {:ok, updated_components}
@@ -81,7 +81,7 @@ defmodule AshGameServer.ECS.SystemExtension do
       system :ai_controller do
         requires [:position, :ai_state]
         run_when :on_event, event: :ai_tick
-        
+
         process fn entity, components ->
           # AI decision making
           {:ok, %{ai_state: new_state}}
@@ -155,13 +155,13 @@ defmodule AshGameServer.ECS.SystemExtension do
       events: [@event_entity]
     ]
   }
-  
+
   # Define systems section
   @system_section %Spark.Dsl.Section{
     name: :systems,
     describe: """
     Define systems that process entities with specific components.
-    
+
     Systems implement the game logic by operating on entities that have
     specific component combinations. They can run on different schedules
     and have various execution priorities.
@@ -173,23 +173,23 @@ defmodule AshGameServer.ECS.SystemExtension do
           requires [:position, :velocity]
           run_every 16  # Run every 16ms (60 FPS)
           priority :high
-          
+
           process fn entity, components ->
             # Update position based on velocity
             new_position = %{
               x: components.position.x + components.velocity.dx,
               y: components.position.y + components.velocity.dy
             }
-            
+
             {:ok, %{position: new_position}}
           end
         end
-        
+
         system :collision_detection do
           requires [:position, :collider]
           run_every 33  # Run every 33ms (30 FPS)
           priority :medium
-          
+
           process fn entity, components ->
             # Check for collisions
             # ...implementation...
@@ -211,7 +211,7 @@ defmodule AshGameServer.ECS.SystemExtension do
       ]
     ]
   }
-  
+
   # Use Spark.Dsl.Extension with sections and transformers defined inline
   use Spark.Dsl.Extension,
     sections: [@system_section],
@@ -219,14 +219,14 @@ defmodule AshGameServer.ECS.SystemExtension do
       AshGameServer.ECS.Transformers.ValidateSystems,
       AshGameServer.ECS.Transformers.OptimizeQueries
     ]
-  
+
   @doc """
   Get all defined systems for a module.
   """
   def get_systems(module) do
     Spark.Dsl.Extension.get_entities(module, [:systems])
   end
-  
+
   @doc """
   Get a specific system by name.
   """
@@ -235,7 +235,7 @@ defmodule AshGameServer.ECS.SystemExtension do
     |> get_systems()
     |> Enum.find(&(&1.name == name))
   end
-  
+
   @doc """
   Get systems that require a specific component.
   """
@@ -246,7 +246,7 @@ defmodule AshGameServer.ECS.SystemExtension do
       component_name in Map.get(system, :requires, [])
     end)
   end
-  
+
   @doc """
   Check if a system is enabled.
   """

@@ -1,7 +1,7 @@
 defmodule AshGameServer.Application do
   @moduledoc """
   The AshGameServer Application module.
-  
+
   This module starts the supervision tree for the game server,
   including all necessary processes for ECS, agents, and web interface.
   """

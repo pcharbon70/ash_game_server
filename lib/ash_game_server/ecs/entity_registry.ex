@@ -1,7 +1,7 @@
 defmodule AshGameServer.ECS.EntityRegistry do
   @moduledoc """
   Centralized entity tracking and registry system for the ECS architecture.
-  
+
   Provides comprehensive entity management with:
   - Centralized entity tracking and lookup
   - Advanced entity queries and indexing
@@ -126,7 +126,7 @@ defmodule AshGameServer.ECS.EntityRegistry do
   @doc """
   Query entities with pagination.
   """
-  @spec query_entities_paginated(query_filter(), non_neg_integer(), pos_integer()) :: 
+  @spec query_entities_paginated(query_filter(), non_neg_integer(), pos_integer()) ::
     {[entity()], boolean()}
   def query_entities_paginated(filters, offset, limit) do
     GenServer.call(__MODULE__, {:query_entities_paginated, filters, offset, limit})
@@ -219,28 +219,28 @@ defmodule AshGameServer.ECS.EntityRegistry do
   def init(_opts) do
     # Create main entities table
     :ets.new(@entities_table, [:named_table, :public, :set, {:read_concurrency, true}])
-    
+
     # Create index tables
     :ets.new(@status_index, [:named_table, :public, :bag])
     :ets.new(@archetype_index, [:named_table, :public, :bag])
     :ets.new(@parent_index, [:named_table, :public, :bag])
     :ets.new(@tag_index, [:named_table, :public, :bag])
-    
+
     # Create statistics table
     :ets.new(@statistics_table, [:named_table, :public, :set])
-    
+
     # Initialize statistics
     initialize_statistics()
-    
+
     # Schedule periodic cleanup
     schedule_cleanup()
-    
+
     state = %{
       cleanup_interval: 300_000,  # 5 minutes
       gc_threshold: 1000,         # Run GC when 1000+ destroyed entities
       statistics_interval: 60_000 # Update stats every minute
     }
-    
+
     {:ok, state}
   end
 
@@ -312,10 +312,10 @@ defmodule AshGameServer.ECS.EntityRegistry do
     do_garbage_collect()
     do_cleanup_old_entities(3600)  # Clean entities older than 1 hour
     update_periodic_statistics()
-    
+
     # Schedule next cleanup
     schedule_cleanup()
-    
+
     {:noreply, state}
   end
 
@@ -331,10 +331,10 @@ defmodule AshGameServer.ECS.EntityRegistry do
   defp do_register_entity(entity) do
     # Store in main table
     :ets.insert(@entities_table, {entity.id, entity})
-    
+
     # Update indexes
     update_indexes_for_entity(entity, nil)
-    
+
     :ok
   end
 
@@ -344,13 +344,13 @@ defmodule AshGameServer.ECS.EntityRegistry do
       [{_, old}] -> old
       [] -> nil
     end
-    
+
     # Update main table
     :ets.insert(@entities_table, {entity.id, entity})
-    
+
     # Update indexes
     update_indexes_for_entity(entity, old_entity)
-    
+
     :ok
   end
 
@@ -359,12 +359,12 @@ defmodule AshGameServer.ECS.EntityRegistry do
       [{_, entity}] ->
         # Remove from main table
         :ets.delete(@entities_table, entity_id)
-        
+
         # Clean up indexes
         cleanup_indexes_for_entity(entity)
-        
+
         :ok
-      
+
       [] -> :ok
     end
   end
@@ -374,20 +374,20 @@ defmodule AshGameServer.ECS.EntityRegistry do
     if old_entity do
       cleanup_indexes_for_entity(old_entity)
     end
-    
+
     # Status index
     add_to_index(@status_index, entity.status, entity.id)
-    
+
     # Archetype index
     if entity.archetype do
       add_to_index(@archetype_index, entity.archetype, entity.id)
     end
-    
+
     # Parent index
     if entity.parent_id do
       add_to_index(@parent_index, entity.parent_id, entity.id)
     end
-    
+
     # Tag indexes
     Enum.each(entity.tags, fn tag ->
       add_to_index(@tag_index, tag, entity.id)
@@ -397,17 +397,17 @@ defmodule AshGameServer.ECS.EntityRegistry do
   defp cleanup_indexes_for_entity(entity) do
     # Status index
     remove_from_index(@status_index, entity.status, entity.id)
-    
+
     # Archetype index
     if entity.archetype do
       remove_from_index(@archetype_index, entity.archetype, entity.id)
     end
-    
+
     # Parent index
     if entity.parent_id do
       remove_from_index(@parent_index, entity.parent_id, entity.id)
     end
-    
+
     # Tag indexes
     Enum.each(entity.tags, fn tag ->
       remove_from_index(@tag_index, tag, entity.id)
@@ -425,7 +425,7 @@ defmodule AshGameServer.ECS.EntityRegistry do
   defp do_query_entities(filters) do
     # Start with all entities
     entity_ids = get_candidate_entity_ids(filters)
-    
+
     # Filter based on criteria
     entity_ids
     |> Enum.map(&get_entity/1)
@@ -437,14 +437,14 @@ defmodule AshGameServer.ECS.EntityRegistry do
   defp do_query_entities_paginated(filters, offset, limit) do
     entities = do_query_entities(filters)
     total_count = length(entities)
-    
-    paginated_entities = 
+
+    paginated_entities =
       entities
       |> Enum.drop(offset)
       |> Enum.take(limit)
-    
+
     has_more = (offset + limit) < total_count
-    
+
     {paginated_entities, has_more}
   end
 
@@ -453,16 +453,16 @@ defmodule AshGameServer.ECS.EntityRegistry do
     cond do
       Map.has_key?(filters, :status) ->
         query_by_status(filters.status)
-      
+
       Map.has_key?(filters, :archetype) ->
         query_by_archetype(filters.archetype)
-      
+
       Map.has_key?(filters, :parent_id) ->
         query_by_parent(filters.parent_id)
-      
+
       Map.has_key?(filters, :tag) ->
         query_by_tag(filters.tag)
-      
+
       true ->
         # Get all entity IDs
         :ets.select(@entities_table, [{{:"$1", :_}, [], [:"$1"]}])
@@ -472,7 +472,7 @@ defmodule AshGameServer.ECS.EntityRegistry do
   defp entity_matches_filters?(entity, filters) do
     Enum.all?(filters, fn filter -> matches_single_filter?(entity, filter) end)
   end
-  
+
   defp matches_single_filter?(entity, {:status, value}), do: entity.status == value
   defp matches_single_filter?(entity, {:archetype, value}), do: entity.archetype == value
   defp matches_single_filter?(entity, {:parent_id, value}), do: entity.parent_id == value
@@ -486,37 +486,37 @@ defmodule AshGameServer.ECS.EntityRegistry do
 
   defp do_garbage_collect do
     destroyed_entities = query_by_status(:destroyed)
-    
+
     cutoff_time = DateTime.add(DateTime.utc_now(), -300, :second)  # 5 minutes ago
-    
-    old_destroyed = 
+
+    old_destroyed =
       destroyed_entities
       |> Enum.map(&get_entity/1)
       |> Enum.filter(&(elem(&1, 0) == :ok))
       |> Enum.map(&elem(&1, 1))
       |> Enum.filter(&(DateTime.compare(&1.updated_at, cutoff_time) == :lt))
-    
+
     Enum.each(old_destroyed, fn entity ->
       do_unregister_entity(entity.id)
     end)
-    
+
     length(old_destroyed)
   end
 
   defp do_cleanup_old_entities(max_age_seconds) do
     cutoff_time = DateTime.add(DateTime.utc_now(), -max_age_seconds, :second)
-    
+
     # Get all entities and filter by criteria
-    old_entities = 
+    old_entities =
       :ets.select(@entities_table, [{{:"$1", :"$2"}, [], [{{:"$1", :"$2"}}]}])
       |> Enum.filter(fn {_id, entity} ->
-        entity.status == :destroyed and 
+        entity.status == :destroyed and
         DateTime.compare(entity.updated_at, cutoff_time) == :lt
       end)
       |> Enum.map(fn {id, _entity} -> id end)
-    
+
     Enum.each(old_entities, &do_unregister_entity/1)
-    
+
     length(old_entities)
   end
 
@@ -526,7 +526,7 @@ defmodule AshGameServer.ECS.EntityRegistry do
     :ets.delete_all_objects(@archetype_index)
     :ets.delete_all_objects(@parent_index)
     :ets.delete_all_objects(@tag_index)
-    
+
     # Rebuild from all entities
     :ets.foldl(fn {_id, entity}, _acc ->
       update_indexes_for_entity(entity, nil)
@@ -544,7 +544,7 @@ defmodule AshGameServer.ECS.EntityRegistry do
       indexes_rebuilt: 0,
       last_updated: DateTime.utc_now()
     }
-    
+
     :ets.insert(@statistics_table, {:counters, stats})
   end
 
@@ -553,13 +553,13 @@ defmodule AshGameServer.ECS.EntityRegistry do
       [{:counters, stats}] ->
         updated_stats = increment_stat(stats, event)
           |> Map.put(:last_updated, DateTime.utc_now())
-        
+
         :ets.insert(@statistics_table, {:counters, updated_stats})
-      
+
       [] -> initialize_statistics()
     end
   end
-  
+
   defp increment_stat(stats, :entity_created), do: Map.update!(stats, :entities_created, &(&1 + 1))
   defp increment_stat(stats, :entity_updated), do: Map.update!(stats, :entities_updated, &(&1 + 1))
   defp increment_stat(stats, :entity_unregistered), do: Map.update!(stats, :entities_unregistered, &(&1 + 1))
@@ -576,7 +576,7 @@ defmodule AshGameServer.ECS.EntityRegistry do
       memory_usage: memory_usage(),
       timestamp: DateTime.utc_now()
     }
-    
+
     :ets.insert(@statistics_table, {:current, current_stats})
   end
 
@@ -585,20 +585,20 @@ defmodule AshGameServer.ECS.EntityRegistry do
       [{:counters, stats}] -> stats
       [] -> %{}
     end
-    
+
     _current = case :ets.lookup(@statistics_table, :current) do
       [{:current, stats}] -> stats
       [] -> %{}
     end
-    
+
     # Always update current stats when requested
     update_periodic_statistics()
-    
+
     current_updated = case :ets.lookup(@statistics_table, :current) do
       [{:current, stats}] -> stats
       [] -> %{}
     end
-    
+
     Map.merge(counters, current_updated)
   end
 
