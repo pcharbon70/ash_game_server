@@ -9,8 +9,9 @@ defmodule AshGameServer.Systems.NetworkingSystem do
   use AshGameServer.Systems.SystemBehaviour
   
   alias AshGameServer.Components.Network.{NetworkID, ReplicationState, PredictionState}
-  alias AshGameServer.Components.Transform.{Position, Velocity}
-  alias AshGameServer.Components.Gameplay.Health
+  alias AshGameServer.Components.Transform.Position
+  # alias AshGameServer.Components.Transform.Velocity  # Unused until velocity networking is implemented
+  # alias AshGameServer.Components.Gameplay.Health     # Unused until health networking is implemented
   
   @type network_state :: %{
     tick_rate: integer(),
@@ -229,40 +230,41 @@ defmodule AshGameServer.Systems.NetworkingSystem do
     %{state | snapshot_buffer: updated_buffer}
   end
   
-  defp capture_entity_state(entity_id) do
-    # Capture relevant components for networking
-    components = %{}
-    
-    # Position
-    components = case get_component(entity_id, Position) do
-      {:ok, pos} -> Map.put(components, :position, pos)
-      _ -> components
-    end
-    
-    # Velocity
-    components = case get_component(entity_id, Velocity) do
-      {:ok, vel} -> Map.put(components, :velocity, vel)
-      _ -> components
-    end
-    
-    # Health
-    components = case get_component(entity_id, Health) do
-      {:ok, health} -> Map.put(components, :health, health)
-      _ -> components
-    end
-    
-    # Network-specific data
-    components = case get_component(entity_id, ReplicationState) do
-      {:ok, repl} -> Map.put(components, :replication, repl)
-      _ -> components
-    end
-    
-    %{
-      entity_id: entity_id,
-      components: components,
-      timestamp: System.monotonic_time()
-    }
-  end
+  # TODO: Enable when full entity state capture is needed
+  # defp capture_entity_state(entity_id) do
+  #   # Capture relevant components for networking
+  #   components = %{}
+  #   
+  #   # Position
+  #   components = case get_component(entity_id, Position) do
+  #     {:ok, pos} -> Map.put(components, :position, pos)
+  #     _ -> components
+  #   end
+  #   
+  #   # Velocity
+  #   components = case get_component(entity_id, Velocity) do
+  #     {:ok, vel} -> Map.put(components, :velocity, vel)
+  #     _ -> components
+  #   end
+  #   
+  #   # Health
+  #   components = case get_component(entity_id, Health) do
+  #     {:ok, health} -> Map.put(components, :health, health)
+  #     _ -> components
+  #   end
+  #   
+  #   # Network-specific data
+  #   components = case get_component(entity_id, ReplicationState) do
+  #     {:ok, repl} -> Map.put(components, :replication, repl)
+  #     _ -> components
+  #   end
+  #   
+  #   %{
+  #     entity_id: entity_id,
+  #     components: components,
+  #     timestamp: System.monotonic_time()
+  #   }
+  # end
   
   defp process_client_updates(state) do
     # Create delta updates for each client

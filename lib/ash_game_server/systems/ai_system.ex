@@ -96,11 +96,12 @@ defmodule AshGameServer.Systems.AISystem do
   
   # Private functions
   
-  defp process_ai_decisions(_state) do
-    # In a real implementation, this would query AI entities
-    # For now, just return :ok
-    :ok
-  end
+  # TODO: Enable when AI decision processing is integrated
+  # defp process_ai_decisions(_state) do
+  #   # In a real implementation, this would query AI entities
+  #   # For now, just return :ok
+  #   :ok
+  # end
   
   defp process_behavior_trees(_state) do
     # In a real implementation, this would query entities with Behavior components
@@ -405,18 +406,19 @@ defmodule AshGameServer.Systems.AISystem do
     end
   end
   
-  defp update_entity_perception(entity_id, perception, _position, _state) do
-    # Find other entities within perception range
-    nearby_entities = find_nearby_entities(entity_id, perception.sight_range)
-    
-    # Update detected entities
-    Enum.reduce(nearby_entities, perception, fn {other_id, distance}, acc_perception ->
-      # Determine threat level based on entity type/combat state
-      threat_level = calculate_threat_level(entity_id, other_id)
-      
-      Perception.detect_entity(acc_perception, other_id, distance, :visual, threat_level)
-    end)
-  end
+  # TODO: Enable when perception system is integrated
+  # defp update_entity_perception(entity_id, perception, _position, _state) do
+  #   # Find other entities within perception range
+  #   nearby_entities = find_nearby_entities(entity_id, perception.sight_range)
+  #   
+  #   # Update detected entities
+  #   Enum.reduce(nearby_entities, perception, fn {other_id, distance}, acc_perception ->
+  #     # Determine threat level based on entity type/combat state
+  #     threat_level = calculate_threat_level(entity_id, other_id)
+  #     
+  #     Perception.detect_entity(acc_perception, other_id, distance, :visual, threat_level)
+  #   end)
+  # end
   
   defp find_nearby_entities(_entity_id, _range) do
     # In a real implementation, this would query nearby entities
@@ -424,112 +426,118 @@ defmodule AshGameServer.Systems.AISystem do
     []
   end
   
-  defp calculate_threat_level(entity_id, other_id) do
-    # Simple threat calculation based on combat stats
-    with {:ok, my_combat} <- get_component(entity_id, Combat),
-         {:ok, other_combat} <- get_component(other_id, Combat),
-         {:ok, other_health} <- get_component(other_id, Health) do
-      
-      # Higher attack power = higher threat
-      attack_ratio = other_combat.attack_power / max(my_combat.armor, 1)
-      
-      # Lower health entities are less threatening
-      health_ratio = other_health.current / other_health.maximum
-      
-      # Clamp between 0.0 and 1.0
-      (attack_ratio * health_ratio * 0.5) |> max(0.0) |> min(1.0)
-    else
-      _ -> 0.1  # Default low threat
-    end
-  end
+  # TODO: Enable when threat calculation is integrated
+  # defp calculate_threat_level(entity_id, other_id) do
+  #   # Simple threat calculation based on combat stats
+  #   with {:ok, my_combat} <- get_component(entity_id, Combat),
+  #        {:ok, other_combat} <- get_component(other_id, Combat),
+  #        {:ok, other_health} <- get_component(other_id, Health) do
+  #     
+  #     # Higher attack power = higher threat
+  #     attack_ratio = other_combat.attack_power / max(my_combat.armor, 1)
+  #     
+  #     # Lower health entities are less threatening
+  #     health_ratio = other_health.current / other_health.maximum
+  #     
+  #     # Clamp between 0.0 and 1.0
+  #     (attack_ratio * health_ratio * 0.5) |> max(0.0) |> min(1.0)
+  #   else
+  #     _ -> 0.1  # Default low threat
+  #   end
+  # end
   
-  defp coordinate_group_behavior(behavior_type, group_entities) do
-    case behavior_type do
-      :aggressive ->
-        coordinate_pack_hunting(group_entities)
-      
-      :defensive ->
-        coordinate_group_defense(group_entities)
-      
-      _ ->
-        :ok  # No coordination for other types
-    end
-  end
+  # TODO: Enable when group coordination is integrated
+  # defp coordinate_group_behavior(behavior_type, group_entities) do
+  #   case behavior_type do
+  #     :aggressive ->
+  #       coordinate_pack_hunting(group_entities)
+  #     
+  #     :defensive ->
+  #       coordinate_group_defense(group_entities)
+  #     
+  #     _ ->
+  #       :ok  # No coordination for other types
+  #   end
+  # end
   
-  defp coordinate_pack_hunting(group_entities) do
-    # Find common targets and coordinate attacks
-    targets = Enum.flat_map(group_entities, fn entity_id ->
-      case get_component(entity_id, AIController) do
-        {:ok, ai} when ai.target_entity != nil -> [ai.target_entity]
-        _ -> []
-      end
-    end)
-    |> Enum.frequencies()
-    
-    # Focus on most targeted entity
-    case Enum.max_by(targets, fn {_target, count} -> count end, fn -> nil end) do
-      {primary_target, _count} ->
-        set_pack_target(group_entities, primary_target)
-      
-      nil -> :ok
-    end
-  end
+  # TODO: Enable when pack hunting is integrated
+  # defp coordinate_pack_hunting(group_entities) do
+  #   # Find common targets and coordinate attacks
+  #   targets = Enum.flat_map(group_entities, fn entity_id ->
+  #     case get_component(entity_id, AIController) do
+  #       {:ok, ai} when ai.target_entity != nil -> [ai.target_entity]
+  #       _ -> []
+  #     end
+  #   end)
+  #   |> Enum.frequencies()
+  #   
+  #   # Focus on most targeted entity
+  #   case Enum.max_by(targets, fn {_target, count} -> count end, fn -> nil end) do
+  #     {primary_target, _count} ->
+  #       set_pack_target(group_entities, primary_target)
+  #     
+  #     nil -> :ok
+  #   end
+  # end
   
-  defp set_pack_target(group_entities, primary_target) do
-    # Set primary target for all pack members
-    Enum.each(group_entities, fn entity_id ->
-      case get_component(entity_id, AIController) do
-        {:ok, ai} ->
-          updated_ai = AIController.set_target(ai, primary_target)
-          update_component(entity_id, AIController, updated_ai)
-        
-        _ -> :ok
-      end
-    end)
-  end
+  # TODO: Enable when pack targeting is integrated
+  # defp set_pack_target(group_entities, primary_target) do
+  #   # Set primary target for all pack members
+  #   Enum.each(group_entities, fn entity_id ->
+  #     case get_component(entity_id, AIController) do
+  #       {:ok, ai} ->
+  #         updated_ai = AIController.set_target(ai, primary_target)
+  #         update_component(entity_id, AIController, updated_ai)
+  #       
+  #       _ -> :ok
+  #     end
+  #   end)
+  # end
   
-  defp coordinate_group_defense(group_entities) do
-    # Form defensive positions around group center
-    positions = Enum.map(group_entities, fn entity_id ->
-      case get_component(entity_id, Position) do
-        {:ok, pos} -> {entity_id, pos}
-        _ -> nil
-      end
-    end)
-    |> Enum.filter(& &1)
-    
-    if length(positions) > 1 do
-      # Calculate group center
-      {sum_x, sum_y} = Enum.reduce(positions, {0.0, 0.0}, fn {_id, pos}, {sx, sy} ->
-        {sx + pos.x, sy + pos.y}
-      end)
-      
-      count = length(positions)
-      center_x = sum_x / count
-      center_y = sum_y / count
-      
-      # Assign defensive positions around center
-      Enum.with_index(positions)
-      |> Enum.each(fn {{entity_id, _pos}, index} ->
-        angle = (index / count) * 2 * :math.pi()
-        radius = 30.0  # Defensive formation radius
-        
-        target_x = center_x + :math.cos(angle) * radius
-        target_y = center_y + :math.sin(angle) * radius
-        
-        # Move towards defensive position
-        move_towards_point(entity_id, %{x: target_x, y: target_y})
-      end)
-    end
-  end
+  # TODO: Enable when group defense is integrated
+  # defp coordinate_group_defense(group_entities) do
+  #   # Form defensive positions around group center
+  #   positions = Enum.map(group_entities, fn entity_id ->
+  #     case get_component(entity_id, Position) do
+  #       {:ok, pos} -> {entity_id, pos}
+  #       _ -> nil
+  #     end
+  #   end)
+  #   |> Enum.filter(& &1)
+  #   
+  #   if length(positions) > 1 do
+  #     # Calculate group center
+  #     {sum_x, sum_y} = Enum.reduce(positions, {0.0, 0.0}, fn {_id, pos}, {sx, sy} ->
+  #       {sx + pos.x, sy + pos.y}
+  #     end)
+  #     
+  #     count = length(positions)
+  #     center_x = sum_x / count
+  #     center_y = sum_y / count
+  #     
+  #     # Assign defensive positions around center
+  #     Enum.with_index(positions)
+  #     |> Enum.each(fn {{entity_id, _pos}, index} ->
+  #       angle = (index / count) * 2 * :math.pi()
+  #       radius = 30.0  # Defensive formation radius
+  #       
+  #       target_x = center_x + :math.cos(angle) * radius
+  #       target_y = center_y + :math.sin(angle) * radius
+  #       
+  #       # Move towards defensive position
+  #       move_towards_point(entity_id, %{x: target_x, y: target_y})
+  #     end)
+  #   end
+  # end
   
-  defp handle_behavior_failure(entity_id, ai_controller) do
-    # Reset AI state on behavior failure
-    updated_ai = AIController.change_state(ai_controller, :idle)
-    |> AIController.clear_target()
-    
-    update_component(entity_id, AIController, updated_ai)
-  end
+  # TODO: Enable when behavior failure handling is integrated
+  # defp handle_behavior_failure(entity_id, ai_controller) do
+  #   # Reset AI state on behavior failure
+  #   updated_ai = AIController.change_state(ai_controller, :idle)
+  #   |> AIController.clear_target()
+  #   
+  #   update_component(entity_id, AIController, updated_ai)
+  # end
   
   defp get_attack_range(%Combat{abilities: abilities}) do
     # Get maximum range from all abilities
